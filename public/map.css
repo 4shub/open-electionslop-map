@@ -449,11 +449,7 @@ html,
         .precinct:hover,
         .precinct.is-selected {
             stroke: var(--background-content-color);
-            stroke-width: 1.5;
-        }
-
-        .precinct.is-selected {
-            fill: var(--background-color);
+            stroke-width: 2.5;
         }
 
         .map-toolbar {
