@@ -591,10 +591,11 @@ html,
     .map-control { width: 2.75rem; height: 2.75rem; }
     .map-status { display: none; }
     .results-panel {
-        margin: 0.5rem 0.75rem calc(0.5rem + env(safe-area-inset-bottom));
-        padding: 0;
-        border: 1px solid color-mix(in srgb, var(--background-content-color) 25%, transparent);
-        border-radius: 0.8rem;
+        margin: 0;
+        padding: 0 0 env(safe-area-inset-bottom);
+        border: 0;
+        border-top: 1px solid color-mix(in srgb, var(--background-content-color) 25%, transparent);
+        border-radius: 0;
         max-height: 52dvh;
         overscroll-behavior: contain;
     }
