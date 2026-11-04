@@ -25,9 +25,13 @@
         <aside class="results-panel vertical-page">
             <div>
                 <label class="field-label" for="contest">Contest</label>
-                <select class="contest-select" id="contest" data-contest disabled>
-                    <option>Loading contests…</option>
-                </select>
+                <div class="contest-control" data-contest-control data-contest-loading aria-busy="true">
+                    <select class="contest-select" id="contest" data-contest aria-describedby="contest-loading" disabled>
+                        <option>Loading contests…</option>
+                    </select>
+                    <span class="contest-skeleton" aria-hidden="true"><span></span></span>
+                </div>
+                <span class="visually-hidden" id="contest-loading" role="status">Loading contests…</span>
             </div>
 
             <section aria-live="polite" aria-busy="true" data-contest-details>

@@ -354,6 +354,16 @@ function populateContestSelect(items) {
 
     contestSelect.replaceChildren(offices, propositions);
     contestSelect.disabled = false;
+    finishContestLoading();
+}
+
+function finishContestLoading(error = '') {
+    const control = app.querySelector('[data-contest-control]');
+    control.removeAttribute('data-contest-loading');
+    control.setAttribute('aria-busy', 'false');
+    app.querySelector('#contest-loading').textContent = error;
+    if (!error) contestSelect.removeAttribute('aria-describedby');
+    else contestSelect.options[0].textContent = error;
 }
 
 function drawMap(geojson) {
@@ -450,6 +460,8 @@ async function initialize() {
         defaultMapStatus();
         await selectContest(contestSummaries[0]);
     } catch (error) {
+        finishContestLoading('Contests unavailable');
+        contestDetails.setAttribute('aria-busy', 'false');
         loading.textContent = 'Election data could not be loaded.';
         contestTitle.textContent = 'Data unavailable';
         contestSummary.textContent = error.message;
