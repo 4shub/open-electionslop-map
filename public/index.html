@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#000000">
+    <title>Sacramento County 2026 election map</title>
+    <link rel="stylesheet" href="./map.css">
+    
+</head>
+<body>
+<div class="election-app" data-election-map>
+    <div class="main-header-wrapper election-header-wrapper">
+        <header class="main-header election-header">
+            <div class="election-title-line">
+                <a href="https://shub.club/" target="_top">[shub.club]</a>
+                <span aria-hidden="true">&nbsp;|&nbsp;</span>
+                <h1>Sacramento County - 2026 Election Map</h1>
+            </div>
+            <time class="election-status" data-election-status>Updated at —</time>
+        </header>
+    </div>
+
+    <main class="election-layout">
+        <aside class="results-panel vertical-page">
+            <div>
+                <label class="field-label" for="contest">Contest</label>
+                <select class="contest-select" id="contest" data-contest disabled>
+                    <option>Loading contests…</option>
+                </select>
+            </div>
+
+            <section aria-live="polite" aria-busy="true" data-contest-details>
+                <h2 class="contest-title" data-contest-title>Loading results…</h2>
+                <p class="contest-summary" data-contest-summary>Requesting official Sacramento County data.</p>
+            </section>
+
+            <ol class="result-list" data-results></ol>
+
+            <details class="data-note">
+                <summary>About this data</summary>
+                <p>Colors are based on the leading choice in each precinct. Precincts with withheld totals are marked as unavailable; suppressed values are not estimated.</p>
+                <p>The results are preliminary and unofficial. Sacramento County reported all 719 election-night precincts, but additional ballots may be counted during the canvass.</p>
+            </details>
+
+            <div class="sources">
+                <a href="https://results.saccounty.gov/results/public/sacramento-county-ca/69" target="_blank" rel="noopener noreferrer">Official results ↗</a>
+                <a href="https://data-sacramentocounty.opendata.arcgis.com/maps/255dd4348bd045cea5c7c4ea949a5b4a" target="_blank" rel="noopener noreferrer">Official boundaries ↗</a>
+                <a href="https://github.com/4shub/electionslopmap" target="_blank" rel="noopener noreferrer">Source code ↗</a>
+            </div>
+        </aside>
+
+        <section class="map-panel" aria-label="Interactive map of Sacramento County election precincts">
+            <svg class="map-view" data-map viewBox="0 0 1000 620" role="img" aria-labelledby="map-title map-description">
+                <title id="map-title">Sacramento County consolidated precincts</title>
+                <desc id="map-description">Interactive results for the 719 consolidated precincts used in the November 3, 2026 statewide general election.</desc>
+                <g data-precinct-layer></g>
+            </svg>
+
+            <div class="map-toolbar" aria-label="Map controls">
+                <button class="map-control" type="button" data-zoom-in aria-label="Zoom in" title="Zoom in">+</button>
+                <button class="map-control" type="button" data-zoom-out aria-label="Zoom out" title="Zoom out">−</button>
+                <button class="map-control" type="button" data-reset aria-label="Reset map" title="Reset map">⌂</button>
+            </div>
+
+            <div class="map-status" data-map-status aria-live="polite">
+                <strong class="map-status-title">Loading official precincts…</strong>
+            </div>
+            <div class="loading" data-loading>Loading 719 official precinct boundaries and election results…</div>
+        </section>
+    </main>
+</div>
+
+<script src="./map.js" defer></script>
+</body>
+</html>
