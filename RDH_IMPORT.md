@@ -4,12 +4,6 @@ and look for a GeoJSON; the
 [California 2024 file](https://redistrictingdatahub.org/dataset/california-2024-general-election-precinct-level-results-and-boundaries/)
 is a GeoJSON ZIP with vote counts in feature properties.
 
-RDH's download link may require a free account. Download through your account,
-then use the saved file. Direct URLs work when they return file bytes without
-an interactive login (including an authorized file URL). Dataset pages and login
-pages are not files. The importer does not log in or request account credentials.
-RDH's bulk API requires [designated API access](https://github.com/nonpartisan-redistricting-datahub/api).
-
 Shapefile-only ZIPs are not supported: export them to WGS84 GeoJSON first.
 Standard stored/deflated ZIPs up to 512 MB are supported; extract ZIP64 or other
 archive types before importing. Use `--entry path/file.geojson` if a ZIP contains
