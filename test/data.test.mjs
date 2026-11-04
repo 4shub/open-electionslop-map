@@ -42,7 +42,7 @@ test('the standalone page uses portable asset paths and exposes its source', asy
     const js = await read('map.js');
     assert.ok(!html.includes('webc:'));
     assert.ok(!html.startsWith('---'));
-    assert.ok(html.includes('https://github.com/4shub/electionslopmap'));
+    assert.ok(html.includes('https://github.com/4shub/open-electionslop-map'));
     for (const path of ['map.css', 'map.js', 'data/sacramento-2026-results.json',
         'data/sacramento-2026-precincts.geojson']) {
         assert.ok((html + js).includes(`./${path}`));

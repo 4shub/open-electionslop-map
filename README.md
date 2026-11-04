@@ -1,4 +1,4 @@
-# electionslopmap
+# open-electionslop-map
 
 An interactive precinct map for Sacramento County's November 3, 2026 general
 election. Select a statewide office or proposition, inspect precinct results,
@@ -12,8 +12,8 @@ The map is embedded on [shub.club](https://shub.club/sacramento-2026-election/).
 Clone this repository and serve its `public` directory:
 
 ```sh
-git clone https://github.com/4shub/electionslopmap.git
-cd electionslopmap
+git clone https://github.com/4shub/open-electionslop-map.git
+cd open-electionslop-map
 python3 -m http.server 8000 --bind 127.0.0.1 --directory public
 ```
 

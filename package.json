@@ -1,12 +1,12 @@
 {
-  "name": "electionslopmap",
+  "name": "open-electionslop-map",
   "version": "1.0.0",
   "private": true,
   "description": "Interactive precinct election map for Sacramento County\u2019s 2026 general election.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/4shub/electionslopmap.git"
+    "url": "https://github.com/4shub/open-electionslop-map.git"
   },
   "type": "module",
   "engines": {
