@@ -388,7 +388,7 @@ async function selectContest(contest) {
         const type = detail.geographyType || mapConfig.geography?.baseType;
         const nextKey = !mapConfig.geography ? 'all'
             : type === mapConfig.geography.baseType ? type
-            : `${type}:${detail.geographyParent}`;
+            : `${type}:${detail.geographyParent ?? 'all'}`;
         const layerChanged = geographyKey !== nextKey;
         if (layerChanged) {
             selectedPrecinct = hoveredPrecinct = selectedPath = null;

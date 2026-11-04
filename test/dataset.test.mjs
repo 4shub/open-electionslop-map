@@ -99,6 +99,9 @@ test('jurisdiction layers replace a parent with its districts and reject hidden 
     const contest = { id: 'council', name: 'Council', geographyType: 'District', geographyParent: 'a', choices: [{ name: 'Alex', votes: 8 }], precincts: { 'district-a': [8] } };
     assert.deepEqual(visibleBoundaries(geo, settings).map(f => f.properties.code), ['city-a', 'city-b']);
     assert.deepEqual(visibleBoundaries(geo, settings, contest).map(f => f.properties.code), ['city-b', 'district-a']);
+    const wholeLayer = { ...contest, geographyParent: undefined };
+    assert.deepEqual(visibleBoundaries(geo, settings, wholeLayer).map(f => f.properties.code), ['district-a', 'district-b']);
+    assert.equal(prepareDataset(settings, { contests: [wholeLayer] }, geo).results.contests.length, 1);
     assert.equal(boundaryLabel(geo.features[2], settings), 'City A District 1');
     assert.equal(prepareDataset(settings, { contests: [contest] }, geo).results.contests[0].choices[0].votes, 8);
     assert.throws(() => prepareDataset(settings, { contests: [{ ...contest, precincts: { 'city-a': [8] } }] }, geo), /geography layer/);

@@ -20,7 +20,7 @@ export function visibleBoundaries(geojson, config, contest = {}) {
     const type = contest.geographyType || baseType;
     return geojson.features.filter(feature => {
         const properties = feature.properties || {};
-        if (type === baseType) return properties[typeProperty] === baseType;
+        if (type === baseType || contest.geographyParent === undefined) return properties[typeProperty] === type;
         return (properties[typeProperty] === baseType && properties[parentProperty] !== contest.geographyParent)
             || (properties[typeProperty] === type && properties[parentProperty] === contest.geographyParent);
     });
