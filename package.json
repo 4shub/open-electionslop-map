@@ -13,9 +13,11 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "python3 -m http.server 8000 --bind 127.0.0.1 --directory public",
+    "dev": "node scripts/serve.mjs",
     "data:refresh": "node scripts/download-sacramento-election.mjs",
     "test": "node --check public/map.js && node --check scripts/download-sacramento-election.mjs && node --test",
-    "validate": "node scripts/validate-data.mjs"
+    "validate": "node scripts/validate-data.mjs",
+    "build": "node scripts/build.mjs",
+    "start": "node scripts/serve.mjs dist"
   }
 }

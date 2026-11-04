@@ -1,8 +1,11 @@
+> **Using AI? Tell your agent to read [agents_read_here_first.md](agents_read_here_first.md) for them to guide you through this.**
+
 # open-electionslop-map
 
 A configurable precinct election map. Supply a county's GeoJSON boundaries and
 CSV or JSON results; keep the same UI. Built with HTML, CSS, JavaScript, and SVG;
-no framework, API keys, npm dependencies, or build step.
+no framework, API keys, or npm dependencies. Node.js 22 or newer runs the
+preview server, validator, optional static build, and data scripts.
 
 Sacramento County's November 3, 2026 general election is the bundled default
 example, embedded on [shub.club](https://shub.club/sacramento-2026-election/).
@@ -26,15 +29,25 @@ Clone this repository and serve its `public` directory:
 ```sh
 git clone https://github.com/4shub/open-electionslop-map.git
 cd open-electionslop-map
-python3 -m http.server 8000 --bind 127.0.0.1 --directory public
+npm run dev
 ```
 
-Open http://127.0.0.1:8000/. Python 3 is only needed for this example server; any
-static HTTP server works. Opening the HTML directly as a `file://` URL will not
-work because the map fetches its data files.
+Open http://127.0.0.1:8000/. No Python or `npm install` is needed. To choose
+another port, run `npm run dev -- --port 8001`. Opening the HTML directly as a
+`file://` URL will not work because the map fetches its data files.
 
-To host it, publish the contents of `public/` with any static host. All assets and
-data URLs are relative, so the map works at a site's root or inside a subdirectory.
+## Build and preview production files
+
+```sh
+npm run build
+npm start
+```
+
+The Node build validates the default dataset, then copies `public/` to `dist/`.
+It stops before replacing an existing build if validation fails. Publish `dist/`
+with any static host. Both servers bind to `127.0.0.1`; `npm start` also accepts
+`-- --port 8001`. All asset and data URLs are relative, so the map works at a
+site's root or inside a subdirectory. You can also serve `public/` directly.
 
 ## Refresh the Sacramento example
 
@@ -74,6 +87,9 @@ snapshot metadata; the MIT code license does not relicense third-party data.
 - `public/map-config.json`: the default county configuration.
 - `public/examples/`: a second county configuration with fictional CSV and GeoJSON.
 - `DATA_FORMAT.md`: the developer data contract and adaptation guide.
+- `agents_read_here_first.md`: how an agent should gather requirements and adapt a county.
+- `scripts/serve.mjs`: dependency-free Node static server.
+- `scripts/build.mjs`: validates and packages the static site into `dist/`.
 - `scripts/validate-data.mjs`: validates any local county configuration.
 - `public/data/`: results and precinct geometry snapshots.
 - `scripts/download-sacramento-election.mjs`: refreshes the snapshots.

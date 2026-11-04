@@ -143,6 +143,7 @@ From this repository:
 ```sh
 npm run validate
 npm test
+npm run build
 npm run dev
 ```
 
@@ -160,6 +161,8 @@ Then visit http://127.0.0.1:8000/?config=./examples/map-config.json. That sample
 uses two fictional precincts, a different ID field, a mayoral race, and a ballot
 measure. It uses the existing map UI with no data-loading controls.
 
-For a permanent county change, replace the default config and data, then publish
-`public/`. Updating data files does not require a build. The checked-in Sacramento
-snapshot remains the default example until you change the config.
+For a permanent county change, replace the default config and data, run
+`npm run build`, and publish `dist/`. The Node build validates and copies the
+static files; `npm start` previews that build. No Python or dependency installation
+is needed. The checked-in Sacramento snapshot remains the default example until
+you change the config.
