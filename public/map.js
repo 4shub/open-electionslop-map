@@ -2,6 +2,7 @@ import { boundaryId, boundaryLabel, parseResults, prepareDataset, visibleBoundar
 import { defaultViewBox, votingAreaViewBox } from './viewport.js';
 import { attachMapGestures } from './gestures.js';
 import { createViewAnimator } from './view-animation.js';
+import { formatUpdated } from './metadata.js';
 
 let mapConfig = {};
 const FALLBACK_COLORS = [
@@ -519,15 +520,29 @@ async function fetchText(url) {
 }
 
 function applyMetadata(results) {
-    document.title = mapConfig.title;
-    app.querySelector('[data-map-heading]').textContent = mapConfig.title;
-    app.querySelector('[data-map-heading]').title = mapConfig.title;
-    const siteLink = app.querySelector('[data-site-link]');
-    const siteSeparator = app.querySelector('[data-site-separator]');
-    siteLink.hidden = siteSeparator.hidden = !mapConfig.siteLink;
-    if (mapConfig.siteLink) {
-        siteLink.textContent = mapConfig.siteLink.label;
-        siteLink.href = mapConfig.siteLink.href;
+    // Built pages already contain their final header. Hydrate only raw developer previews.
+    if (!app.querySelector('.election-header').hasAttribute('data-metadata-ready') || new URLSearchParams(location.search).has('config')) {
+        document.title = mapConfig.title;
+        app.querySelector('[data-map-heading]').textContent = mapConfig.title;
+        app.querySelector('[data-map-heading]').title = mapConfig.title;
+        const siteLink = app.querySelector('[data-site-link]');
+        const siteSeparator = app.querySelector('[data-site-separator]');
+        siteLink.hidden = siteSeparator.hidden = !mapConfig.siteLink;
+        if (mapConfig.siteLink) {
+            siteLink.textContent = mapConfig.siteLink.label;
+            siteLink.href = mapConfig.siteLink.href;
+        }
+        const updated = results.election.lastUpdated;
+        if (updated) {
+            electionStatus.dateTime = updated;
+            electionStatus.textContent = formatUpdated(updated, mapConfig.timeZone);
+        } else {
+            electionStatus.removeAttribute('datetime');
+            electionStatus.textContent = 'Snapshot date not provided';
+        }
+        const mobileUpdated = app.querySelector('[data-mobile-election-status]');
+        mobileUpdated.textContent = electionStatus.textContent;
+        if (updated) mobileUpdated.dateTime = updated;
     }
     app.querySelector('.map-panel').setAttribute('aria-label', `Interactive election map: ${mapConfig.title}`);
     app.querySelector('#map-title').textContent = mapConfig.title;
@@ -541,17 +556,6 @@ function applyMetadata(results) {
         if (url) link.href = url;
         else link.removeAttribute('href');
     });
-    const updated = results.election.lastUpdated;
-    if (updated) {
-        electionStatus.dateTime = updated;
-        electionStatus.textContent = `Updated at ${new Date(updated).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}`;
-    } else {
-        electionStatus.removeAttribute('datetime');
-        electionStatus.textContent = 'Snapshot date not provided';
-    }
-    const mobileUpdated = app.querySelector('[data-mobile-election-status]');
-    mobileUpdated.textContent = electionStatus.textContent;
-    if (updated) mobileUpdated.dateTime = updated;
 }
 
 async function initialize() {
@@ -577,7 +581,7 @@ async function initialize() {
         loading.textContent = 'Election data could not be loaded.';
         contestTitle.textContent = 'Data unavailable';
         contestSummary.textContent = error.message;
-        electionStatus.textContent = 'Data unavailable';
+        // The pre-rendered title and snapshot timestamp remain useful if data fails.
         console.error(error);
     }
 }

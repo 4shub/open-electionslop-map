@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { prepareDataset } from '../public/dataset.js';
+import { formatUpdated } from '../public/metadata.js';
 import { validateConfig } from './validate-data.mjs';
 
 async function versionAssets(output, config) {
@@ -39,6 +40,26 @@ async function versionAssets(output, config) {
     return { config: versionedConfig, assetVersion: version };
 }
 
+async function renderMetadata(output, config, results) {
+    const escape = value => String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
+    const filename = path.join(output, 'index.html');
+    const updated = results.election.lastUpdated;
+    const dateTime = updated ? ` datetime="${escape(updated)}"` : '';
+    const label = escape(formatUpdated(updated, config.timeZone));
+    let html = (await readFile(filename, 'utf8'))
+        .replace('<header class="main-header election-header">', '<header class="main-header election-header" data-metadata-ready>')
+        .replace(/<title>Election map<\/title>/, () => `<title>${escape(config.title)}</title>`)
+        .replace(/(<h1\b[^>]*data-map-heading[^>]*>)[\s\S]*?(<\/h1>)/, (_, open, close) => `${open}${escape(config.title)}${close}`)
+        .replace(/<time class="election-status" data-election-status>[^<]*<\/time>/,
+            () => `<time class="election-status" data-election-status${dateTime}>${label}</time>`)
+        .replace(/<time class="mobile-updated" data-mobile-election-status><\/time>/,
+            () => `<time class="mobile-updated" data-mobile-election-status${dateTime}>${label}</time>`);
+    if (config.siteLink) html = html
+        .replace('<a data-site-link target="_top" hidden></a>', () => `<a data-site-link target="_top" href="${escape(config.siteLink.href)}">${escape(config.siteLink.label)}</a>`)
+        .replace('data-site-separator aria-hidden="true" hidden', 'data-site-separator aria-hidden="true"');
+    await writeFile(filename, html);
+}
+
 export async function buildSite({ outputDirectory, siteLink, configUrl } = {}) {
     const root = fileURLToPath(new URL('../', import.meta.url));
     const source = path.join(root, 'public');
@@ -66,6 +87,7 @@ export async function buildSite({ outputDirectory, siteLink, configUrl } = {}) {
         await writeFile(path.join(dataDirectory, 'precincts.geojson'), JSON.stringify(dataset.geojson) + '\n');
     }
     await writeFile(path.join(output, 'map-config.json'), JSON.stringify(config, null, 2) + '\n');
+    await renderMetadata(output, config, dataset.results);
     return { outputDirectory: output, ...await versionAssets(output, config) };
 }
 

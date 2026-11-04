@@ -196,6 +196,7 @@ html,
         }
 
         .election-header {
+            height: 44px;
             max-width: none;
             gap: 0.75rem;
             font-family: var(--font-family-sans);
@@ -206,13 +207,18 @@ html,
             align-items: center;
             min-width: 0;
             margin-right: auto;
-            overflow-x: auto;
+            height: 28px;
+            flex: 1;
+            overflow: hidden;
             white-space: nowrap;
         }
 
         .election-title-line h1 {
             display: inline;
-            flex: none;
+            flex: 0 1 auto;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
             font-size: inherit;
             line-height: inherit;
         }
@@ -570,7 +576,7 @@ html,
 @media (max-width: 720px) {
     html, body { overflow: hidden; }
     .election-app { height: 100dvh; min-height: 0; }
-    .election-header { flex-wrap: nowrap; padding: 0.35rem 0.75rem; }
+    .election-header { height: 40px; flex-wrap: nowrap; padding: 0.35rem 0.75rem; }
     .election-title-line { flex-basis: auto; overflow: hidden; white-space: nowrap; }
     .election-title-line h1 { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
     .election-title-line a, .election-title-line > span { flex-shrink: 0; }

@@ -57,7 +57,7 @@ test('production URLs version CSS, module dependencies, config, fonts, and elect
     assert.ok(html.includes(`./map.css${version}`));
     assert.ok(html.includes(`./map.js${version}`));
     const js = await readOutput('map.js');
-    for (const file of ['dataset.js', 'viewport.js', 'gestures.js', 'view-animation.js', 'map-config.json']) assert.ok(js.includes(`./${file}${version}`));
+    for (const file of ['dataset.js', 'viewport.js', 'gestures.js', 'view-animation.js', 'metadata.js', 'map-config.json']) assert.ok(js.includes(`./${file}${version}`));
     assert.ok((await readOutput('map.css')).includes(`.woff2${version}`));
     assert.ok(first.config.results.endsWith(version));
     assert.ok(first.config.boundaries.endsWith(version));
@@ -66,4 +66,29 @@ test('production URLs version CSS, module dependencies, config, fonts, and elect
     await writeFile(csvPath, (await readFile(csvPath, 'utf8')).replace(',120,', ',121,'));
     const refreshed = await buildSite(options);
     assert.notEqual(refreshed.assetVersion, first.assetVersion, 'updated data changes the whole asset chain');
+});
+
+test('built headers contain final escaped metadata before JavaScript or election data loads', async t => {
+    const temporary = await mkdtemp(path.join(os.tmpdir(), 'election-header-'));
+    t.after(() => rm(temporary, { recursive: true, force: true }));
+    const source = path.join(temporary, 'source');
+    await cp(new URL('../public/examples/', import.meta.url), source, { recursive: true });
+    const configPath = path.join(source, 'map-config.json');
+    const config = JSON.parse(await readFile(configPath, 'utf8'));
+    config.title = 'County <Election> & Results';
+    config.timeZone = 'America/Los_Angeles';
+    await writeFile(configPath, JSON.stringify(config));
+    const build = await buildSite({ outputDirectory: path.join(temporary, 'site'), configUrl: pathToFileURL(configPath), siteLink: { label: '<My site>', href: 'https://example.org/?a=1&b=2' } });
+    const html = await readFile(path.join(build.outputDirectory, 'index.html'), 'utf8');
+    const header = html.match(/<header\b[\s\S]*?<\/header>/)[0];
+    assert.match(header, /data-metadata-ready/);
+    assert.ok(header.includes('County &lt;Election&gt; &amp; Results'));
+    assert.ok(header.includes('Updated at Nov 4, 2026, 4:00 AM PST'));
+    assert.ok(header.includes('&lt;My site&gt;'));
+    assert.ok(header.includes('a=1&amp;b=2'));
+    assert.ok(!/loading|skeleton|Updated at —/i.test(header));
+    assert.ok(html.includes('<title>County &lt;Election&gt; &amp; Results</title>'));
+    config.timeZone = 'invalid-zone';
+    await writeFile(configPath, JSON.stringify(config));
+    await assert.rejects(buildSite({ outputDirectory: path.join(temporary, 'bad'), configUrl: pathToFileURL(configPath) }), /timeZone/);
 });

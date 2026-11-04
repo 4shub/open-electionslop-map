@@ -22,6 +22,7 @@ Paths are relative to the config file.
 | `precinctIdPadding` | Numeric ID width, 0–32; defaults to 0. `3` matches `1` with `"001"`. |
 | `resultsFormat` | `"csv"` or `"json"`; defaults to the file extension. |
 | `election.lastUpdated` | ISO timestamp. |
+| `timeZone` | IANA time zone for the update timestamp, e.g. `"America/Los_Angeles"`. Default `"UTC"`. |
 | `siteLink` | Optional `{ "label": "[My site]", "href": "https://example.org/" }`; omitted by default. |
 | `sources` | `{ "results": "https://…", "boundaries": "https://…" }` |
 | `countyName`, `description`, `note`, `boundariesLabel` | Text. |

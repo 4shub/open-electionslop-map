@@ -44,6 +44,7 @@ Build a separate dataset with `npm run build -- --config path/to/map-config.json
 Its data files are packaged into `dist/data/`.
 
 The Node build validates the default dataset, then copies `public/` to `dist/`.
+Titles and update timestamps are rendered into the HTML during the build.
 It stops before replacing an existing build if validation fails. The build versions asset and data URLs together to prevent stale cached files from mixing across deployments.
 Publish `dist/` with any static host. Both servers bind to `127.0.0.1`; `npm start` also accepts
 `-- --port 8001`. All asset and data URLs are relative, so the map works at a

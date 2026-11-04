@@ -1,6 +1,7 @@
 {
   "title": "Sacramento County - 2026 Election Map",
   "countyName": "Sacramento County",
+  "timeZone": "America/Los_Angeles",
   "description": "Interactive results for the 719 consolidated precincts used in the November 3, 2026 statewide general election.",
   "results": "./data/sacramento-2026-results.json",
   "boundaries": "./data/sacramento-2026-precincts.geojson",

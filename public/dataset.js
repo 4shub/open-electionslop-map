@@ -125,6 +125,11 @@ export function parseResults(text, config) {
 export function prepareDataset(rawConfig, rawResults, geojson) {
     const config = { precinctIdProperty: 'precinct', precinctIdPadding: 0, ...rawConfig };
     requireValue(typeof config.title === 'string' && config.title.trim(), 'Map config needs a title.');
+    if (config.timeZone !== undefined) {
+        let valid = typeof config.timeZone === 'string' && config.timeZone.trim();
+        try { new Intl.DateTimeFormat('en-US', { timeZone: config.timeZone }); } catch { valid = false; }
+        requireValue(valid, 'timeZone must be an IANA time zone, such as America/Los_Angeles.');
+    }
     requireValue(config.autoMoveToVotingArea === undefined || typeof config.autoMoveToVotingArea === 'boolean', 'autoMoveToVotingArea must be true or false.');
     if (config.defaultZoomOverride !== undefined) {
         const bounds = config.defaultZoomOverride?.bounds;
