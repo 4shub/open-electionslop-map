@@ -1,6 +1,7 @@
 import { boundaryId, boundaryLabel, parseResults, prepareDataset, visibleBoundaries } from './dataset.js';
 import { defaultViewBox, votingAreaViewBox } from './viewport.js';
 import { attachMapGestures } from './gestures.js';
+import { createViewAnimator } from './view-animation.js';
 
 let mapConfig = {};
 const FALLBACK_COLORS = [
@@ -93,11 +94,21 @@ function clampWidth(value) {
     return Math.min(maxWidth, Math.max(minWidth, value));
 }
 
-function setViewBox(next) {
-    const width = clampWidth(next.width);
+function paintViewBox(next) {
+    const width = next.width;
     const height = width * mapAspect;
     viewBox = { x: next.x, y: next.y, width, height };
     svg.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`);
+}
+
+function setViewBox(next) {
+    viewAnimator.cancel();
+    paintViewBox({ ...next, width: clampWidth(next.width) });
+}
+
+function moveToView(next, { duration = 450 } = {}) {
+    const width = clampWidth(next.width);
+    viewAnimator.move({ ...next, width, height: width * mapAspect }, { duration });
 }
 
 function zoom(factor, centerX = viewBox.x + viewBox.width / 2, centerY = viewBox.y + viewBox.height / 2) {
@@ -105,15 +116,15 @@ function zoom(factor, centerX = viewBox.x + viewBox.width / 2, centerY = viewBox
     const height = width * mapAspect;
     const ratioX = (centerX - viewBox.x) / viewBox.width;
     const ratioY = (centerY - viewBox.y) / viewBox.height;
-    setViewBox({
+    moveToView({
         x: centerX - width * ratioX,
         y: centerY - height * ratioY,
         width,
-    });
+    }, { duration: 220 });
 }
 
 function resetMap() {
-    setViewBox(initialViewBox);
+    moveToView(initialViewBox);
 }
 
 function updateInitialView() {
@@ -372,15 +383,16 @@ async function selectContest(contest) {
         const detail = contest;
         if (thisRequest !== requestNumber) return;
         currentContest = detail;
+        const hadMap = geographyKey !== null;
         const type = detail.geographyType || mapConfig.geography?.baseType;
         const nextKey = !mapConfig.geography ? 'all'
             : type === mapConfig.geography.baseType ? type
             : `${type}:${detail.geographyParent}`;
-        if (geographyKey !== nextKey) {
+        const layerChanged = geographyKey !== nextKey;
+        if (layerChanged) {
             selectedPrecinct = hoveredPrecinct = selectedPath = null;
             drawMap({ type: 'FeatureCollection', features: visibleBoundaries(allBoundaries, mapConfig, detail) });
             geographyKey = nextKey;
-            resetMap();
         }
         currentPrecinctResults = new Map(Object.entries(detail.precincts).map(([id, votes]) => [id, {
             choices: detail.choices.map((choice, index) => ({
@@ -393,8 +405,8 @@ async function selectContest(contest) {
             selectedPath?.classList.remove('is-selected');
             selectedPrecinct = hoveredPrecinct = selectedPath = null;
             updateInitialView();
-            resetMap();
         }
+        if (mapConfig.autoMoveToVotingArea || layerChanged) moveToView(initialViewBox, { duration: hadMap ? 450 : 0 });
         renderCountywideResults(detail);
         renderMapColors();
         updateMapStatus();
@@ -449,7 +461,7 @@ function drawMap(geojson) {
     pathByPrecinct.clear();
     boundaryLabels.clear();
     const features = geojson.features.filter(feature => feature.geometry);
-    const project = makeProjection(features);
+    const project = mapProjection || makeProjection(allBoundaries.features);
     mapFeatures = features;
     mapProjection = project;
     const rect = svg.getBoundingClientRect();
@@ -570,6 +582,13 @@ async function initialize() {
     }
 }
 
+const viewAnimator = createViewAnimator({
+    getView: () => viewBox,
+    render: paintViewBox,
+    reducedMotion: () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    onStateChange: active => svg.toggleAttribute('data-view-transition', active),
+});
+
 contestSelect.addEventListener('change', () => {
     const contest = contestSummaries.find(item => item.id === contestSelect.value);
     if (contest) selectContest(contest);
@@ -584,6 +603,7 @@ const gestures = attachMapGestures(svg, {
     setViewBox,
     clampWidth,
     getAspectRatio: () => mapAspect,
+    onInteractionStart: viewAnimator.cancel,
     toMapPoint: (x, y) => {
         const point = svg.createSVGPoint();
         point.x = x;
@@ -599,12 +619,12 @@ new ResizeObserver(() => {
     if (!mapProjection || !rect.width || !rect.height) return;
     const aspect = rect.height / rect.width;
     if (Math.abs(aspect - mapAspect) < 0.001) return;
-    const atInitialView = ['x', 'y', 'width', 'height'].every(key => Math.abs(viewBox[key] - initialViewBox[key]) < 0.01);
-    const previousView = { ...viewBox };
+    const previousView = viewAnimator.getDestination() || { ...viewBox };
+    const atInitialView = ['x', 'y', 'width', 'height'].every(key => Math.abs(previousView[key] - initialViewBox[key]) < 0.01);
     mapAspect = aspect;
     updateInitialView();
-    if (atInitialView) resetMap();
-    else setViewBox({ x: previousView.x, y: previousView.y + (previousView.height - previousView.width * aspect) / 2, width: previousView.width });
+    if (atInitialView) moveToView(initialViewBox, { duration: 280 });
+    else moveToView({ x: previousView.x, y: previousView.y + (previousView.height - previousView.width * aspect) / 2, width: previousView.width }, { duration: 280 });
 }).observe(svg);
 
 svg.addEventListener('click', event => {

@@ -1,4 +1,4 @@
-export function attachMapGestures(svg, { getViewBox, setViewBox, toMapPoint, clampWidth, getAspectRatio = () => 0.62 }) {
+export function attachMapGestures(svg, { getViewBox, setViewBox, toMapPoint, clampWidth, getAspectRatio = () => 0.62, onInteractionStart = () => {} }) {
     const pointers = new Map();
     let gesture = null;
     let safariGesture = null;
@@ -27,6 +27,7 @@ export function attachMapGestures(svg, { getViewBox, setViewBox, toMapPoint, cla
     }
     svg.addEventListener('pointerdown', event => {
         if (event.button !== 0) return;
+        onInteractionStart();
         pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
         rebase();
     });
@@ -58,6 +59,7 @@ export function attachMapGestures(svg, { getViewBox, setViewBox, toMapPoint, cla
     svg.addEventListener('wheel', event => {
         event.preventDefault();
         if (safariGesture) return;
+        onInteractionStart();
         const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? svg.clientHeight : 1;
         const factor = Math.exp(Math.max(-1, Math.min(1, event.deltaY * unit * (event.ctrlKey ? 0.01 : 0.002))));
         const client = { x: event.clientX, y: event.clientY };
@@ -73,6 +75,7 @@ export function attachMapGestures(svg, { getViewBox, setViewBox, toMapPoint, cla
     svg.addEventListener('gesturestart', event => {
         event.preventDefault();
         if (pointers.size >= 2) return;
+        onInteractionStart();
         const client = safariCenter(event);
         safariGesture = { anchor: toMapPoint(client.x, client.y), width: getViewBox().width };
     }, { passive: false });
