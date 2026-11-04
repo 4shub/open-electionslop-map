@@ -6,3 +6,11 @@ export function formatUpdated(updated, timeZone = 'UTC') {
         .formatToParts(date).find(part => part.type === 'timeZoneName').value;
     return `Updated at ${label} ${zone}`;
 }
+
+export function contestMetadata(config, results, contest = {}) {
+    return {
+        note: [config.note, contest.note].filter(Boolean).join(' '),
+        sources: { ...results.sources, ...contest.sources },
+        lastUpdated: contest.lastUpdated || results.election?.lastUpdated,
+    };
+}

@@ -182,6 +182,11 @@ export function prepareDataset(rawConfig, rawResults, geojson) {
     const contests = rawResults.contests.map(contest => {
         requireValue(contest.id && !contestIds.has(String(contest.id)), 'Contest IDs must be nonempty and unique.');
         contestIds.add(String(contest.id));
+        requireValue(!contest.lastUpdated || Number.isFinite(Date.parse(contest.lastUpdated)), 'Contest lastUpdated must be a valid date.');
+        requireValue(contest.note === undefined || typeof contest.note === 'string', 'Contest note must be text.');
+        for (const source of Object.values(contest.sources || {})) {
+            requireValue(typeof source === 'string' && /^https?:\/\//i.test(source), 'Source links must be HTTP or HTTPS URLs.');
+        }
         requireValue(typeof contest.name === 'string' && contest.name && Array.isArray(contest.choices) && contest.choices.length, `Contest ${contest.id} needs a name and choices.`);
         const choices = contest.choices.map(choice => {
             requireValue(typeof choice.name === 'string' && choice.name && validVotes(choice.votes), `Contest ${contest.id} has an invalid choice name or vote count.`);

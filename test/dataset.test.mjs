@@ -84,6 +84,12 @@ test('duplicate CSV rows, negative counts, and invalid vote arrays are rejected'
 test('source links must be HTTP URLs and metadata must have a valid update time', () => {
     assert.throws(() => prepareDataset({ ...config, sources: { results: 'javascript:alert(1)' } }, results, boundaries), /HTTP or HTTPS/);
     assert.throws(() => prepareDataset({ ...config, election: { lastUpdated: 'yesterday-ish' } }, results, boundaries), /valid date/);
+    const contestSource = clone(results);
+    contestSource.contests[0].sources = { results: 'javascript:alert(1)' };
+    assert.throws(() => prepareDataset(config, contestSource, boundaries), /HTTP or HTTPS/);
+    delete contestSource.contests[0].sources;
+    contestSource.contests[0].lastUpdated = 'not a date';
+    assert.throws(() => prepareDataset(config, contestSource, boundaries), /valid date/);
 });
 
 test('jurisdiction layers replace a parent with its districts and reject hidden vote areas', async () => {

@@ -94,6 +94,7 @@ precinct,contest,candidate,votes,party,type
 - Precinct vote arrays follow `choices` order. All counts are nonnegative integers or `null`.
 - Optional: contest `shortName` and `type`; choice `id`, `party`, and hex `color`.
 - Optional contest `group`: selector group; `reportingAreaLabel`: total scope, e.g. `"citywide"`.
+- Optional contest `note`, `lastUpdated` (ISO timestamp), and `sources` override the selected contest's data note, mobile timestamp, and source links. The header retains the dataset timestamp.
 - With `geography`: contest `geographyType` selects a layer. Optional `geographyParent` replaces only that parent's base feature; other base features remain visible. Feature names come from `nameProperty`.
 - Optional top-level `precincts`: unique ID array covering every contest precinct.
 - Optional `election` and `sources`: same format as config; config values take precedence.

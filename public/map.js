@@ -2,9 +2,10 @@ import { boundaryId, boundaryLabel, parseResults, prepareDataset, visibleBoundar
 import { defaultViewBox, votingAreaViewBox } from './viewport.js';
 import { attachMapGestures } from './gestures.js';
 import { createViewAnimator } from './view-animation.js';
-import { formatUpdated } from './metadata.js';
+import { formatUpdated, contestMetadata } from './metadata.js';
 
 let mapConfig = {};
+let mapResults = {};
 const FALLBACK_COLORS = [
     'var(--alt-background-color)',
     'var(--font-muted-color)',
@@ -409,6 +410,20 @@ async function selectContest(contest) {
         }
         if (mapConfig.autoMoveToVotingArea || layerChanged) moveToView(initialViewBox, { duration: hadMap ? 450 : 0 });
         renderCountywideResults(detail);
+        const metadata = contestMetadata(mapConfig, mapResults, detail);
+        const note = app.querySelector('[data-map-note]');
+        note.textContent = metadata.note;
+        note.hidden = !metadata.note;
+        app.querySelectorAll('[data-source]').forEach(link => {
+            const url = metadata.sources[link.dataset.source];
+            link.hidden = !url;
+            if (url) link.href = url;
+            else link.removeAttribute('href');
+        });
+        const mobileUpdated = app.querySelector('[data-mobile-election-status]');
+        mobileUpdated.textContent = formatUpdated(metadata.lastUpdated, mapConfig.timeZone);
+        if (metadata.lastUpdated) mobileUpdated.dateTime = metadata.lastUpdated;
+        else mobileUpdated.removeAttribute('datetime');
         renderMapColors();
         updateMapStatus();
     } catch (error) {
@@ -520,6 +535,7 @@ async function fetchText(url) {
 }
 
 function applyMetadata(results) {
+    mapResults = results;
     // Built pages already contain their final header. Hydrate only raw developer previews.
     if (!app.querySelector('.election-header').hasAttribute('data-metadata-ready') || new URLSearchParams(location.search).has('config')) {
         document.title = mapConfig.title;
