@@ -1,9 +1,43 @@
-import { cp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { prepareDataset } from '../public/dataset.js';
 import { validateConfig } from './validate-data.mjs';
+
+async function versionAssets(output, config) {
+    async function filesIn(directory) {
+        const entries = await readdir(directory, { withFileTypes: true });
+        const files = await Promise.all(entries.map(entry => entry.isDirectory()
+            ? filesIn(path.join(directory, entry.name)) : entry.isFile() ? [path.join(directory, entry.name)] : []));
+        return files.flat().sort();
+    }
+    const files = await filesIn(output);
+    const hash = createHash('sha256');
+    for (const filename of files) hash.update(path.relative(output, filename)).update('\0').update(await readFile(filename));
+    const version = hash.digest('hex').slice(0, 16);
+    const versionUrl = url => {
+        const [resource, fragment] = url.split('#');
+        return `${resource}${resource.includes('?') ? '&' : '?'}v=${version}${fragment === undefined ? '' : `#${fragment}`}`;
+    };
+    // Version every link in the asset chain, including module imports and data.
+    // HTML and assets can otherwise be cached for different lengths of time.
+    for (const filename of files.filter(file => /\.(?:html|js|css)$/.test(file))) {
+        let contents = await readFile(filename, 'utf8');
+        if (filename.endsWith('.html')) contents = contents.replace(/((?:href|src)=)(["'])(\.\/[^"']+\.(?:css|js))\2/g,
+            (_, attribute, quote, url) => `${attribute}${quote}${versionUrl(url)}${quote}`);
+        if (filename.endsWith('.js')) contents = contents
+            .replace(/(\bfrom\s+)(["'])(\.\.?\/[^"']+\.js)\2/g, (_, prefix, quote, url) => `${prefix}${quote}${versionUrl(url)}${quote}`)
+            .replace(/(["'])\.\/map-config\.json\1/g, (_, quote) => `${quote}${versionUrl('./map-config.json')}${quote}`);
+        if (filename.endsWith('.css')) contents = contents.replace(/url\((["'])(\.\/?[^"']+)\1\)/g,
+            (_, quote, url) => `url(${quote}${versionUrl(url)}${quote})`);
+        await writeFile(filename, contents);
+    }
+    const versionedConfig = { ...config, results: versionUrl(config.results), boundaries: versionUrl(config.boundaries) };
+    await writeFile(path.join(output, 'map-config.json'), JSON.stringify(versionedConfig, null, 2) + '\n');
+    return { config: versionedConfig, assetVersion: version };
+}
 
 export async function buildSite({ outputDirectory, siteLink, configUrl } = {}) {
     const root = fileURLToPath(new URL('../', import.meta.url));
@@ -32,7 +66,7 @@ export async function buildSite({ outputDirectory, siteLink, configUrl } = {}) {
         await writeFile(path.join(dataDirectory, 'precincts.geojson'), JSON.stringify(dataset.geojson) + '\n');
     }
     await writeFile(path.join(output, 'map-config.json'), JSON.stringify(config, null, 2) + '\n');
-    return { outputDirectory: output, config };
+    return { outputDirectory: output, ...await versionAssets(output, config) };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {

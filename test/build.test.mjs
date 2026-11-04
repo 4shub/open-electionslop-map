@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -40,4 +40,30 @@ test('build outputs cannot replace repository sources or their ancestors', async
     for (const directory of [new URL('../', import.meta.url), new URL('../public/', import.meta.url), new URL('../public/output/', import.meta.url), new URL('file:///')]) {
         await assert.rejects(buildSite({ outputDirectory: fileURLToPath(directory) }), /separate from the source/);
     }
+});
+
+test('production URLs version CSS, module dependencies, config, fonts, and election data together', async t => {
+    const temporary = await mkdtemp(path.join(os.tmpdir(), 'election-cache-'));
+    t.after(() => rm(temporary, { recursive: true, force: true }));
+    const source = path.join(temporary, 'source');
+    await cp(new URL('../public/examples/', import.meta.url), source, { recursive: true });
+    const options = { outputDirectory: path.join(temporary, 'site'), configUrl: pathToFileURL(path.join(source, 'map-config.json')) };
+    const first = await buildSite(options);
+    const again = await buildSite(options);
+    assert.equal(first.assetVersion, again.assetVersion, 'unchanged content has stable cache keys');
+    const version = `?v=${first.assetVersion}`;
+    const readOutput = name => readFile(path.join(first.outputDirectory, name), 'utf8');
+    const html = await readOutput('index.html');
+    assert.ok(html.includes(`./map.css${version}`));
+    assert.ok(html.includes(`./map.js${version}`));
+    const js = await readOutput('map.js');
+    for (const file of ['dataset.js', 'viewport.js', 'gestures.js', 'view-animation.js', 'map-config.json']) assert.ok(js.includes(`./${file}${version}`));
+    assert.ok((await readOutput('map.css')).includes(`.woff2${version}`));
+    assert.ok(first.config.results.endsWith(version));
+    assert.ok(first.config.boundaries.endsWith(version));
+    await validateConfig(pathToFileURL(path.join(first.outputDirectory, 'map-config.json')));
+    const csvPath = path.join(source, 'results.csv');
+    await writeFile(csvPath, (await readFile(csvPath, 'utf8')).replace(',120,', ',121,'));
+    const refreshed = await buildSite(options);
+    assert.notEqual(refreshed.assetVersion, first.assetVersion, 'updated data changes the whole asset chain');
 });
