@@ -4,9 +4,9 @@ and look for a GeoJSON; the
 [California 2024 file](https://redistrictingdatahub.org/dataset/california-2024-general-election-precinct-level-results-and-boundaries/)
 is a GeoJSON ZIP with vote counts in feature properties.
 
-Shapefile-only ZIPs are not supported: export them to WGS84 GeoJSON first.
-Standard stored/deflated ZIPs up to 512 MB are supported; extract ZIP64 or other
-archive types before importing. Use `--entry path/file.geojson` if a ZIP contains
+Shapefile-only ZIPs are not supported, make sure they are WGS84 GeoJSON first.
+
+Standard stored/deflated ZIPs up to 512 MB are supported. Use `--entry path/file.geojson` if a ZIP contains
 multiple JSON files.
 
 ## Inspect
