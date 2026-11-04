@@ -1,7 +1,7 @@
+<img width="1658" height="1010" alt="cover2-1658w" src="https://github.com/user-attachments/assets/208445f0-615a-459b-8334-8a3bc0b699d4" />
+
 > **Using AI? Tell your agent to read [agents_read_here_first.md](agents_read_here_first.md) for them to guide you through this.**
 
-
-<img width="1658" height="1010" alt="cover2-1658w" src="https://github.com/user-attachments/assets/208445f0-615a-459b-8334-8a3bc0b699d4" />
 # Open ElectionSlop Map
 Open ElectonSlop Map is a template for you to build your own interactive personal election results maps. I use it myself on my personal site [shub.club](https://shub.club/sacramento-2026-election/) for the Sacramento County Races, but you can use it for any race in America (or maybe the world, I haven't tried)
 
