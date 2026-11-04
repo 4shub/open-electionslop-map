@@ -1,5 +1,6 @@
 import { boundaryId, boundaryLabel, parseResults, prepareDataset, visibleBoundaries } from './dataset.js';
 import { defaultViewBox, votingAreaViewBox } from './viewport.js';
+import { attachMapGestures } from './gestures.js';
 
 let mapConfig = {};
 const FALLBACK_COLORS = [
@@ -20,6 +21,9 @@ const svg = app.querySelector('[data-map]');
 const layer = app.querySelector('[data-precinct-layer]');
 const mapStatus = app.querySelector('[data-map-status]');
 const loading = app.querySelector('[data-loading]');
+const resultsPanel = app.querySelector('.results-panel');
+const resultsToggle = app.querySelector('[data-results-toggle]');
+const mobileMapStatus = app.querySelector('[data-mobile-map-status]');
 const number = new Intl.NumberFormat('en-US');
 const percent = new Intl.NumberFormat('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const pathByPrecinct = new Map();
@@ -38,8 +42,7 @@ let selectedPath = null;
 let requestNumber = 0;
 let viewBox = { x: 0, y: 0, width: 1000, height: 620 };
 let initialViewBox = { ...viewBox };
-let drag = null;
-let ignoreClick = false;
+let mapAspect = 0.62;
 
 function cookieTheme() {
     const value = document.cookie.split(';').find(cookie => cookie.trim().startsWith('theme='));
@@ -84,18 +87,22 @@ function candidateColor(choice, index, contestType, choices) {
     return FALLBACK_COLORS[index % FALLBACK_COLORS.length];
 }
 
-function setViewBox(next) {
+function clampWidth(value) {
     const minWidth = Math.min(90, initialViewBox.width / 4);
-    const maxWidth = 1300;
-    const width = Math.min(maxWidth, Math.max(minWidth, next.width));
-    const height = width * 0.62;
+    const maxWidth = Math.max(1300, initialViewBox.width * 1.3);
+    return Math.min(maxWidth, Math.max(minWidth, value));
+}
+
+function setViewBox(next) {
+    const width = clampWidth(next.width);
+    const height = width * mapAspect;
     viewBox = { x: next.x, y: next.y, width, height };
     svg.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`);
 }
 
 function zoom(factor, centerX = viewBox.x + viewBox.width / 2, centerY = viewBox.y + viewBox.height / 2) {
-    const width = viewBox.width * factor;
-    const height = viewBox.height * factor;
+    const width = clampWidth(viewBox.width * factor);
+    const height = width * mapAspect;
     const ratioX = (centerX - viewBox.x) / viewBox.width;
     const ratioY = (centerY - viewBox.y) / viewBox.height;
     setViewBox({
@@ -107,6 +114,13 @@ function zoom(factor, centerX = viewBox.x + viewBox.width / 2, centerY = viewBox
 
 function resetMap() {
     setViewBox(initialViewBox);
+}
+
+function updateInitialView() {
+    const votingFeatures = mapConfig.autoMoveToVotingArea && currentContest
+        ? mapFeatures.filter(feature => Object.hasOwn(currentContest.precincts, boundaryId(feature, mapConfig))) : [];
+    initialViewBox = votingAreaViewBox(votingFeatures, mapProjection, mapAspect)
+        || defaultViewBox(mapConfig.defaultZoomOverride, mapProjection, mapAspect);
 }
 
 function mercatorY(latitude) {
@@ -224,6 +238,32 @@ function renderCountywideResults(contest) {
         ? `${choices[winner].name} leads ${contest.reportingAreaLabel || 'countywide'}${margin === null ? '' : ` by ${percent.format(margin)} points`} · ${number.format(total)} votes reported`
         : `No ${contest.reportingAreaLabel || 'countywide'} result has been reported.`;
     resultList.replaceChildren(...choices.map(choice => createResultRow(choice, total)));
+    const scope = contest.reportingAreaLabel || 'countywide';
+    app.querySelector('[data-results-heading]').textContent = `${scope.charAt(0).toUpperCase() + scope.slice(1)} results`;
+    const compact = app.querySelector('[data-compact-results]');
+    const topChoices = [...choices].sort((a, b) => (b.votes ?? -1) - (a.votes ?? -1)).slice(0, 2);
+    compact.replaceChildren(...topChoices.map(choice => {
+        const item = document.createElement('span');
+        item.className = 'compact-choice';
+        const swatch = document.createElement('span');
+        swatch.className = 'choice-swatch';
+        swatch.style.setProperty('--choice-color', choice.color);
+        swatch.setAttribute('aria-hidden', 'true');
+        const name = document.createElement('span');
+        name.className = 'compact-choice-name';
+        name.textContent = choice.name;
+        const count = document.createElement('span');
+        count.className = 'compact-choice-count';
+        count.textContent = choice.votes === null ? 'Withheld' : total > 0 ? `${percent.format(choice.votes / total * 100)}%` : '—';
+        item.append(swatch, name, count);
+        return item;
+    }));
+    if (choices.length > 2) {
+        const more = document.createElement('span');
+        more.className = 'compact-more';
+        more.textContent = `+${choices.length - 2} more`;
+        compact.append(more);
+    }
 }
 
 function clearMapClasses(path) {
@@ -312,6 +352,13 @@ function updateMapStatus() {
     const id = hoveredPrecinct || selectedPrecinct;
     if (id) renderPrecinctStatus(id);
     else defaultMapStatus();
+    mobileMapStatus.hidden = !id;
+    mobileMapStatus.replaceChildren(...[...mapStatus.childNodes].map(node => node.cloneNode(true)));
+}
+
+function expandResults(expanded) {
+    resultsPanel.classList.toggle('is-expanded', expanded);
+    resultsToggle.setAttribute('aria-expanded', String(expanded));
 }
 
 async function selectContest(contest) {
@@ -345,9 +392,7 @@ async function selectContest(contest) {
         if (mapConfig.autoMoveToVotingArea) {
             selectedPath?.classList.remove('is-selected');
             selectedPrecinct = hoveredPrecinct = selectedPath = null;
-            const votingFeatures = mapFeatures.filter(feature => currentPrecinctResults.has(boundaryId(feature, mapConfig)));
-            initialViewBox = votingAreaViewBox(votingFeatures, mapProjection)
-                || defaultViewBox(mapConfig.defaultZoomOverride, mapProjection);
+            updateInitialView();
             resetMap();
         }
         renderCountywideResults(detail);
@@ -407,7 +452,9 @@ function drawMap(geojson) {
     const project = makeProjection(features);
     mapFeatures = features;
     mapProjection = project;
-    initialViewBox = defaultViewBox(mapConfig.defaultZoomOverride, project);
+    const rect = svg.getBoundingClientRect();
+    mapAspect = rect.width > 0 && rect.height > 0 ? rect.height / rect.width : 0.62;
+    initialViewBox = defaultViewBox(mapConfig.defaultZoomOverride, project, mapAspect);
     const fragment = document.createDocumentFragment();
 
     features.forEach(feature => {
@@ -422,7 +469,8 @@ function drawMap(geojson) {
         title.textContent = label;
         boundaryLabels.set(id, label);
         path.append(title);
-        path.addEventListener('pointerenter', () => {
+        path.addEventListener('pointerenter', event => {
+            if (event.pointerType === 'touch') return;
             hoveredPrecinct = id;
             updateMapStatus();
         });
@@ -432,7 +480,7 @@ function drawMap(geojson) {
         });
         path.addEventListener('click', event => {
             event.stopPropagation();
-            if (ignoreClick) return;
+            if (gestures.isClickSuppressed()) return;
             selectedPath?.classList.remove('is-selected');
             if (selectedPrecinct === id) {
                 selectedPrecinct = null;
@@ -441,6 +489,7 @@ function drawMap(geojson) {
                 selectedPrecinct = id;
                 selectedPath = path;
                 path.classList.add('is-selected');
+                if (window.matchMedia('(max-width: 720px)').matches) expandResults(true);
             }
             updateMapStatus();
         });
@@ -460,6 +509,7 @@ async function fetchText(url) {
 function applyMetadata(results) {
     document.title = mapConfig.title;
     app.querySelector('[data-map-heading]').textContent = mapConfig.title;
+    app.querySelector('[data-map-heading]').title = mapConfig.title;
     const siteLink = app.querySelector('[data-site-link]');
     const siteSeparator = app.querySelector('[data-site-separator]');
     siteLink.hidden = siteSeparator.hidden = !mapConfig.siteLink;
@@ -487,6 +537,9 @@ function applyMetadata(results) {
         electionStatus.removeAttribute('datetime');
         electionStatus.textContent = 'Snapshot date not provided';
     }
+    const mobileUpdated = app.querySelector('[data-mobile-election-status]');
+    mobileUpdated.textContent = electionStatus.textContent;
+    if (updated) mobileUpdated.dateTime = updated;
 }
 
 async function initialize() {
@@ -526,59 +579,36 @@ app.querySelector('[data-zoom-in]').addEventListener('click', () => zoom(0.72));
 app.querySelector('[data-zoom-out]').addEventListener('click', () => zoom(1.38));
 app.querySelector('[data-reset]').addEventListener('click', resetMap);
 
-svg.addEventListener('wheel', event => {
-    event.preventDefault();
-    const point = svg.createSVGPoint();
-    point.x = event.clientX;
-    point.y = event.clientY;
-    const local = point.matrixTransform(svg.getScreenCTM().inverse());
-    zoom(event.deltaY > 0 ? 1.18 : 0.84, local.x, local.y);
-}, { passive: false });
-
-svg.addEventListener('pointerdown', event => {
-    if (event.button !== 0) return;
-    drag = {
-        x: event.clientX,
-        y: event.clientY,
-        startX: event.clientX,
-        startY: event.clientY,
-        pointerId: event.pointerId,
-        moved: false,
-        viewBox: { ...viewBox },
-    };
+const gestures = attachMapGestures(svg, {
+    getViewBox: () => viewBox,
+    setViewBox,
+    clampWidth,
+    getAspectRatio: () => mapAspect,
+    toMapPoint: (x, y) => {
+        const point = svg.createSVGPoint();
+        point.x = x;
+        point.y = y;
+        return point.matrixTransform(svg.getScreenCTM().inverse());
+    },
 });
 
-svg.addEventListener('pointermove', event => {
-    if (!drag) return;
+resultsToggle.addEventListener('click', () => expandResults(resultsToggle.getAttribute('aria-expanded') !== 'true'));
+
+new ResizeObserver(() => {
     const rect = svg.getBoundingClientRect();
-    const deltaX = (event.clientX - drag.x) / rect.width * drag.viewBox.width;
-    const deltaY = (event.clientY - drag.y) / rect.height * drag.viewBox.height;
-    if (!drag.moved && Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > 4) {
-        drag.moved = true;
-        ignoreClick = true;
-        svg.setPointerCapture(drag.pointerId);
-        svg.classList.add('is-dragging');
-    }
-    if (!drag.moved) return;
-    setViewBox({
-        x: drag.viewBox.x - deltaX,
-        y: drag.viewBox.y - deltaY,
-        width: drag.viewBox.width,
-    });
-});
+    if (!mapProjection || !rect.width || !rect.height) return;
+    const aspect = rect.height / rect.width;
+    if (Math.abs(aspect - mapAspect) < 0.001) return;
+    const atInitialView = ['x', 'y', 'width', 'height'].every(key => Math.abs(viewBox[key] - initialViewBox[key]) < 0.01);
+    const previousView = { ...viewBox };
+    mapAspect = aspect;
+    updateInitialView();
+    if (atInitialView) resetMap();
+    else setViewBox({ x: previousView.x, y: previousView.y + (previousView.height - previousView.width * aspect) / 2, width: previousView.width });
+}).observe(svg);
 
-function endDrag(event) {
-    if (!drag) return;
-    if (svg.hasPointerCapture(event.pointerId)) svg.releasePointerCapture(event.pointerId);
-    drag = null;
-    svg.classList.remove('is-dragging');
-    window.setTimeout(() => { ignoreClick = false; }, 0);
-}
-
-svg.addEventListener('pointerup', endDrag);
-svg.addEventListener('pointercancel', endDrag);
 svg.addEventListener('click', event => {
-    if (event.target !== svg || ignoreClick) return;
+    if (event.target !== svg || gestures.isClickSuppressed()) return;
     selectedPath?.classList.remove('is-selected');
     selectedPath = null;
     selectedPrecinct = null;

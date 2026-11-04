@@ -22,37 +22,17 @@
     </div>
 
     <main class="election-layout">
-        <aside class="results-panel vertical-page">
-            <div>
-                <label class="field-label" for="contest">Contest</label>
-                <div class="contest-control" data-contest-control data-contest-loading aria-busy="true">
-                    <select class="contest-select" id="contest" data-contest aria-describedby="contest-loading" disabled>
-                        <option>Loading contests…</option>
-                    </select>
-                    <span class="contest-skeleton" aria-hidden="true"><span></span></span>
-                </div>
-                <span class="visually-hidden" id="contest-loading" role="status">Loading contests…</span>
+        <div class="contest-panel">
+            <label class="field-label" for="contest">Contest</label>
+            <div class="contest-control" data-contest-control data-contest-loading aria-busy="true">
+                <select class="contest-select" id="contest" data-contest aria-describedby="contest-loading" disabled>
+                    <option>Loading contests…</option>
+                </select>
+                <span class="contest-skeleton" aria-hidden="true"><span></span></span>
             </div>
+            <span class="visually-hidden" id="contest-loading" role="status">Loading contests…</span>
+        </div>
 
-            <section aria-live="polite" aria-busy="true" data-contest-details>
-                <h2 class="contest-title" data-contest-title>Loading results…</h2>
-                <p class="contest-summary" data-contest-summary>Loading election data.</p>
-            </section>
-
-            <ol class="result-list" data-results></ol>
-
-            <details class="data-note">
-                <summary>About this data</summary>
-                <p>Colors are based on the leading choice in each reporting area. Areas with withheld totals are marked as unavailable; suppressed values are not estimated.</p>
-                <p data-map-note hidden></p>
-            </details>
-
-            <div class="sources">
-                <a data-source="results" hidden target="_blank" rel="noopener noreferrer">Official results ↗</a>
-                <a data-source="boundaries" hidden target="_blank" rel="noopener noreferrer">Official boundaries ↗</a>
-                <a href="https://github.com/4shub/open-electionslop-map" target="_blank" rel="noopener noreferrer">Source code ↗</a>
-            </div>
-        </aside>
 
         <section class="map-panel" aria-label="Interactive precinct election map">
             <svg class="map-view" data-map viewBox="0 0 1000 620" role="img" aria-labelledby="map-title map-description">
@@ -72,6 +52,37 @@
             </div>
             <div class="loading" data-loading>Loading boundaries and election results…</div>
         </section>
+        <aside class="results-panel vertical-page">
+            <button class="mobile-results-toggle" type="button" aria-expanded="false" aria-controls="results-expanded" data-results-toggle>
+                <span class="mobile-results-overview">
+                    <strong data-results-heading>Results</strong>
+                    <span class="mobile-result-choices" data-compact-results>Loading results…</span>
+                </span>
+                <span class="results-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="m6 15 6-6 6 6" fill="none" stroke="currentColor" stroke-width="2" /></svg></span>
+            </button>
+            <div class="results-expanded" id="results-expanded" role="region" aria-label="Detailed election results">
+                <div class="mobile-map-status" data-mobile-map-status aria-live="polite" hidden></div>
+                <section aria-live="polite" aria-busy="true" data-contest-details>
+                    <h2 class="contest-title" data-contest-title>Loading results…</h2>
+                    <p class="contest-summary" data-contest-summary>Loading election data.</p>
+                </section>
+
+                <ol class="result-list" data-results></ol>
+
+                <details class="data-note">
+                    <summary>About this data</summary>
+                    <p>Colors are based on the leading choice in each reporting area. Areas with withheld totals are marked as unavailable; suppressed values are not estimated.</p>
+                    <p data-map-note hidden></p>
+                </details>
+
+                <div class="sources">
+                    <a data-source="results" hidden target="_blank" rel="noopener noreferrer">Official results ↗</a>
+                    <a data-source="boundaries" hidden target="_blank" rel="noopener noreferrer">Official boundaries ↗</a>
+                    <a href="https://github.com/4shub/open-electionslop-map" target="_blank" rel="noopener noreferrer">Source code ↗</a>
+                </div>
+                <time class="mobile-updated" data-mobile-election-status></time>
+            </div>
+        </aside>
     </main>
 </div>
 

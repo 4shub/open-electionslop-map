@@ -536,52 +536,6 @@ html,
             display: none;
         }
 
-        @media (max-width: 720px) {
-            html,
-            body {
-                overflow: auto;
-            }
-
-            .election-app {
-                height: auto;
-                min-height: 100dvh;
-            }
-
-            .election-header {
-                flex-wrap: wrap;
-                gap: 0.25rem;
-            }
-
-            .election-title-line {
-                flex-basis: 100%;
-                white-space: normal;
-            }
-
-            .election-title-line h1 {
-                flex-shrink: 1;
-            }
-
-            .election-layout {
-                grid-template-columns: minmax(0, 1fr);
-                grid-template-rows: auto minmax(32rem, 65dvh);
-            }
-
-            .results-panel {
-                border-right: 0;
-                border-bottom: 1px solid var(--border-color);
-            }
-
-            .result-list {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-        }
-
-        @media (max-width: 430px) {
-            .result-list {
-                grid-template-columns: 1fr;
-            }
-        }
-
         @media (prefers-reduced-motion: reduce) {
             .contest-skeleton > span {
                 animation: none;
@@ -599,3 +553,86 @@ html,
         h1 {
             font-weight: normal;
         }
+
+/* Selector and results remain in the desktop sidebar; mobile places the map first. */
+.election-layout {
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas: 'selector map' 'results map';
+}
+.contest-panel {
+    grid-area: selector;
+    min-width: 0;
+    padding: 0.75rem 1rem 0;
+    border-right: 1px solid var(--border-color);
+    background: var(--background-color);
+}
+.results-panel { grid-area: results; }
+.map-panel { grid-area: map; }
+.results-expanded { display: flex; flex-direction: column; gap: 0.75rem; }
+.mobile-results-toggle, .mobile-map-status, .mobile-updated { display: none; }
+
+@media (max-width: 720px) {
+    html, body { overflow: hidden; }
+    .election-app { height: 100dvh; min-height: 0; }
+    .election-header { flex-wrap: nowrap; padding: 0.35rem 0.75rem; }
+    .election-title-line { flex-basis: auto; overflow: hidden; white-space: nowrap; }
+    .election-title-line h1 { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .election-title-line a, .election-title-line > span { flex-shrink: 0; }
+    .election-status { display: none; }
+    .election-layout {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas: 'selector' 'map' 'results';
+        grid-template-rows: auto minmax(0, 1fr) auto;
+    }
+    .contest-panel { padding: 0.5rem 0.75rem; border-right: 0; border-bottom: 1px solid var(--border-color); }
+    .contest-panel .field-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+    .contest-select { min-height: 2.75rem; font-size: 1rem; }
+    .map-toolbar { top: 0.5rem; right: 0.5rem; }
+    .map-control { width: 2.75rem; height: 2.75rem; }
+    .map-status { display: none; }
+    .results-panel {
+        margin: 0.5rem 0.75rem calc(0.5rem + env(safe-area-inset-bottom));
+        padding: 0;
+        border: 1px solid color-mix(in srgb, var(--background-content-color) 25%, transparent);
+        border-radius: 0.8rem;
+        max-height: 52dvh;
+        overscroll-behavior: contain;
+    }
+    .mobile-results-toggle {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        width: 100%;
+        padding: 0.9rem 1rem;
+        text-align: left;
+        background: var(--background-color);
+    }
+    .mobile-results-overview { display: grid; gap: 0.5rem; flex: 1; min-width: 0; }
+    .mobile-results-overview > strong { font-size: 1rem; }
+    .mobile-result-choices { display: flex; flex-wrap: wrap; gap: 0.35rem 0.9rem; font-size: 0.85rem; }
+    .compact-choice { display: inline-flex; align-items: center; gap: 0.35rem; max-width: 100%; min-width: 0; }
+    .compact-choice-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .compact-choice-count { flex: none; color: var(--font-muted-color); }
+    .choice-swatch { width: 0.65rem; height: 0.65rem; border-radius: 2px; background: var(--choice-color); flex: none; }
+    .compact-more { color: var(--font-muted-color); }
+    .results-chevron { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; flex: none; border: 1px solid color-mix(in srgb, var(--background-content-color) 25%, transparent); border-radius: 0.5rem; background: var(--highlight); }
+    .mobile-results-toggle[aria-expanded='true'] .results-chevron svg { transform: rotate(180deg); }
+    .mobile-results-toggle:focus-visible { outline: 2px solid currentColor; outline-offset: -4px; }
+    .results-panel:not(.is-expanded) .results-expanded { display: none; }
+    .results-expanded { padding: 0 1rem 1rem; }
+    .mobile-map-status:not([hidden]), .mobile-updated { display: block; }
+    .mobile-map-status { padding-bottom: 0.75rem; border-bottom: 1px solid var(--font-muted-color); font-size: 0.85rem; }
+    .mobile-updated { color: var(--font-muted-color); font-size: 0.75rem; }
+    .result-list { grid-template-columns: 1fr; }
+    .result-name { white-space: normal; }
+}
+
+@media (max-width: 720px) and (max-height: 500px) {
+    .map-toolbar { display: flex; }
+    .map-control { border-bottom: 0; border-right: 1px solid var(--border-color); }
+    .map-control:last-child { border-right: 0; }
+}
