@@ -1,168 +1,94 @@
-# Bring another county's data
+# Data formats
 
-The UI stays the same. To change the county, supply a config file, precinct
-boundaries, and results. No changes to `index.html`, CSS, or rendering code are
-needed. See the complete fictional example in `public/examples/`.
+Three files: config JSON, precinct GeoJSON, and results CSV or JSON.
+[Complete example](public/examples/).
 
-## 1. Configure the map
-
-Edit `public/map-config.json`:
+## Config: `public/map-config.json`
 
 ```json
 {
   "title": "Your County - Election Map",
-  "countyName": "Your County",
   "results": "./data/results.csv",
   "boundaries": "./data/precincts.geojson",
-  "precinctIdProperty": "PRECINCT",
-  "precinctIdPadding": 0,
-  "election": { "lastUpdated": "2026-11-04T12:00:00Z" },
-  "sources": {
-    "results": "https://your-county.gov/election-results",
-    "boundaries": "https://your-county.gov/precinct-boundaries"
-  },
-  "note": "Describe the election, snapshot date, and any limitations."
+  "precinctIdProperty": "PRECINCT"
 }
 ```
 
-Use your actual source URLs; omit `sources` when you do not have them. These
-populate the existing official-source links. Optional `note` supplies the second
-paragraph of the existing About section. Paths are **relative to the config
-file**, not the HTML page, so you can keep each county in its own directory.
+Paths are relative to the config file.
 
-`election.lastUpdated` is optional; the map shows that no snapshot date was
-provided if it is absent. Do not use an invented timestamp.
+| Optional field | Value |
+| --- | --- |
+| `precinctIdProperty` | ID property name; defaults to `"precinct"`. `null` uses feature `id`. |
+| `precinctIdPadding` | Numeric ID width, 0–32; defaults to 0. `3` matches `1` with `"001"`. |
+| `resultsFormat` | `"csv"` or `"json"`; defaults to the file extension. |
+| `election.lastUpdated` | ISO timestamp. |
+| `sources` | `{ "results": "https://…", "boundaries": "https://…" }` |
+| `countyName`, `description`, `note`, `boundariesLabel` | Text. |
+| `contestGroups` | `{ "offices": "Offices", "measures": "Ballot measures" }` |
 
-Optional settings:
+## Boundaries: GeoJSON
 
-- `description`: accessible description of the map.
-- `boundariesLabel`: label after the precinct count; defaults to "precinct boundaries".
-- `contestGroups`: `{ "offices": "Local offices", "measures": "Ballot measures" }`.
-- `resultsFormat`: `"csv"` or `"json"`; otherwise inferred from the results path.
-
-## 2. Add precinct boundaries
-
-Save a WGS84 longitude/latitude GeoJSON `FeatureCollection` containing `Polygon`
-or `MultiPolygon` features. Each feature needs a unique precinct ID:
+WGS84 longitude/latitude `FeatureCollection` with `Polygon` or `MultiPolygon` features:
 
 ```json
 {
-  "type": "Feature",
-  "properties": { "PRECINCT": "001" },
-  "geometry": {
-    "type": "Polygon",
-    "coordinates": [[[-100,40],[-99.9,40],[-99.9,40.1],[-100,40.1],[-100,40]]]
-  }
+  "type": "FeatureCollection",
+  "features": [{
+    "type": "Feature",
+    "properties": { "PRECINCT": "001" },
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [[[-100,40],[-99.9,40],[-99.9,40.1],[-100,40.1],[-100,40]]]
+    }
+  }]
 }
 ```
 
-Set `precinctIdProperty` to the property containing that ID. Set it to `null` to
-use the GeoJSON feature's top-level `id` instead. No property names are tied to
-Sacramento. Numeric IDs become strings; strings retain leading zeros. If the
-results use `001` but geometry stores numeric `1`, set `precinctIdPadding` to `3`
-to pad numeric IDs on **both** sides. Alphanumeric IDs are preserved.
+IDs must be unique. Every result precinct needs a matching boundary;
+boundaries without results are allowed. IDs become strings; leading zeros
+are preserved. Numeric IDs are padded when `precinctIdPadding` is set.
 
-Each boundary ID must be unique. Every result precinct must have a boundary.
-Boundaries without results are allowed and display as unavailable for that
-contest. If a county splits or combines precincts between files, reconcile those
-geographies in your adapter before importing; the renderer does not guess joins.
+## Results: CSV
 
-## 3. Add results: CSV is the shortest route
-
-Use one row per precinct, contest, and candidate (or ballot choice):
+One row per precinct/contest/candidate:
 
 ```csv
 precinct,contest,candidate,votes,party,type
 001,Mayor,Alex Rivera,120,IND,Candidate
 001,Mayor,Sam Lee,80,IND,Candidate
-002,Mayor,Alex Rivera,70,IND,Candidate
-002,Mayor,Sam Lee,130,IND,Candidate
 001,Library bond,Yes,110,,BallotMeasure
 001,Library bond,No,90,,BallotMeasure
-002,Library bond,Yes,60,,BallotMeasure
-002,Library bond,No,140,,BallotMeasure
 ```
 
-Only `precinct,contest,candidate,votes` are required. Optional `party` is a display
-abbreviation; optional `type` is `BallotMeasure` for ballot questions and defaults
-to `Candidate`. Optional `color` is a hex color used by the existing color palette
-when applicable. Use the same candidate metadata and contest type in every row.
-UTF-8 BOMs, CRLF, and standard quoted CSV fields are supported.
+- Required columns: `precinct,contest,candidate,votes`.
+- Optional: `party`, `type` (`Candidate` by default; `BallotMeasure` for questions), `color` (hex).
+- Keep candidate metadata and contest type consistent across rows.
+- Votes: nonnegative integers. Blank, `null`, `withheld`, or missing candidate rows mean unavailable; `0` means zero.
+- Duplicate rows are rejected. Aggregate voting methods first; exclude countywide total rows.
+- Countywide totals sum disclosed votes. Use JSON for separately published totals.
+- Standard quoted CSV, UTF-8 BOMs, and CRLF are supported.
 
-Counts must be nonnegative whole numbers. Zero means zero. Blank, `null`, or
-`withheld` vote values stay unavailable. Missing candidate rows in a precinct
-also stay unavailable; they are not filled with zero. Supply explicit zero rows
-when the reporting authority actually reported zero.
-
-Countywide CSV totals sum only disclosed rows; withheld votes are not estimated.
-Use JSON if you have separate published countywide totals that differ from the
-sum of disclosed precinct totals. Do not include countywide total rows in the
-CSV. If exports have separate Election Day / mail / early rows, aggregate those
-to one precinct/contest/candidate row first. Duplicate rows fail validation.
-
-This is a normalized interface, not a universal parser for every county's raw
-export. Transform the county's column names and layout into these columns, or
-write a small adapter that emits the JSON below. The Sacramento downloader is
-one example of an adapter for a particular reporting vendor.
-
-## Or supply JSON
-
-The existing Sacramento snapshot uses this format. `votes` arrays use the same
-order as `choices`; `null` means unavailable. Countywide choice totals are
-provided separately, so published totals can include ballots withheld at the
-precinct level.
+## Results: JSON
 
 ```json
 {
-  "election": { "lastUpdated": "2026-11-04T12:00:00Z" },
   "contests": [{
     "id": "mayor",
     "name": "Mayor",
-    "shortName": "Mayor",
-    "type": "Candidate",
     "choices": [
-      { "id": "alex", "name": "Alex Rivera", "party": "IND", "votes": 190 },
-      { "id": "sam", "name": "Sam Lee", "party": "IND", "votes": 210 }
+      { "name": "Alex Rivera", "votes": 120 },
+      { "name": "Sam Lee", "votes": 80 }
     ],
-    "precincts": { "001": [120, 80], "002": [70, 130] }
+    "precincts": { "001": [120, 80] }
   }]
 }
 ```
 
-Contest IDs and choices must be unique. Choice totals and precinct array entries
-must be nonnegative integers or `null`. `shortName`, `type`, and `party` are
-optional. An optional top-level `precincts` array declares available result IDs;
-if supplied it must cover every contest precinct. Optional `sources` uses the
-same object as the config. Config election metadata and sources override the
-corresponding JSON values.
+- Contest fields: `id`, `name`, `choices`, `precincts`. IDs and choices must be unique.
+- Choice fields: `name`, `votes` (countywide total).
+- Precinct vote arrays follow `choices` order. All counts are nonnegative integers or `null`.
+- Optional: contest `shortName` and `type`; choice `id`, `party`, and hex `color`.
+- Optional top-level `precincts`: unique ID array covering every contest precinct.
+- Optional `election` and `sources`: same format as config; config values take precedence.
 
-## 4. Validate, preview, and publish
-
-From this repository:
-
-```sh
-npm run validate
-npm test
-npm run build
-npm run dev
-```
-
-Validation uses the same code as the browser and reports missing precincts,
-duplicate rows or IDs, malformed geometry, and invalid vote arrays before you
-publish. No dependency installation is needed.
-
-To preview another config without replacing the default:
-
-```sh
-npm run validate -- public/examples/map-config.json
-```
-
-Then visit http://127.0.0.1:8000/?config=./examples/map-config.json. That sample
-uses two fictional precincts, a different ID field, a mayoral race, and a ballot
-measure. It uses the existing map UI with no data-loading controls.
-
-For a permanent county change, replace the default config and data, run
-`npm run build`, and publish `dist/`. The Node build validates and copies the
-static files; `npm start` previews that build. No Python or dependency installation
-is needed. The checked-in Sacramento snapshot remains the default example until
-you change the config.
+Validate with `npm run validate` or `npm run validate -- path/to/map-config.json`.
