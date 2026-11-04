@@ -1,4 +1,4 @@
-import { boundaryId, parseResults, prepareDataset } from './dataset.js';
+import { boundaryId, boundaryLabel, parseResults, prepareDataset, visibleBoundaries } from './dataset.js';
 
 let mapConfig = {};
 const FALLBACK_COLORS = [
@@ -22,6 +22,9 @@ const loading = app.querySelector('[data-loading]');
 const number = new Intl.NumberFormat('en-US');
 const percent = new Intl.NumberFormat('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const pathByPrecinct = new Map();
+const boundaryLabels = new Map();
+let allBoundaries = null;
+let geographyKey = null;
 
 let contestSummaries = [];
 let currentContest = null;
@@ -214,8 +217,8 @@ function renderCountywideResults(contest) {
 
     contestTitle.textContent = contest.name;
     contestSummary.textContent = winner >= 0
-        ? `${choices[winner].name} leads countywide${margin === null ? '' : ` by ${percent.format(margin)} points`} · ${number.format(total)} votes reported`
-        : 'No countywide result has been reported.';
+        ? `${choices[winner].name} leads ${contest.reportingAreaLabel || 'countywide'}${margin === null ? '' : ` by ${percent.format(margin)} points`} · ${number.format(total)} votes reported`
+        : `No ${contest.reportingAreaLabel || 'countywide'} result has been reported.`;
     resultList.replaceChildren(...choices.map(choice => createResultRow(choice, total)));
 }
 
@@ -262,7 +265,7 @@ function defaultMapStatus() {
     title.className = 'map-status-title';
     help.className = 'map-help';
     title.textContent = `${number.format(pathByPrecinct.size)} ${mapConfig.boundariesLabel || 'precinct boundaries'}`;
-    help.textContent = currentContest ? 'Hover over a precinct or select it for detailed results.' : 'Loading contest results…';
+    help.textContent = currentContest ? `Hover over ${mapConfig.geography ? 'an area' : 'a precinct'} or select it for detailed results.` : 'Loading contest results…';
     mapStatus.append(title, help);
 }
 
@@ -271,11 +274,11 @@ function renderPrecinctStatus(id) {
     mapStatus.replaceChildren();
     const title = document.createElement('strong');
     title.className = 'map-status-title';
-    title.textContent = `Precinct ${id}`;
+    title.textContent = boundaryLabels.get(id) || `Precinct ${id}`;
     mapStatus.append(title);
 
     if (!result) {
-        mapStatus.append('This contest was not on the precinct ballot.');
+        mapStatus.append(mapConfig.geography ? 'This contest was not held in this area.' : 'This contest was not on the precinct ballot.');
         return;
     }
     if (result.choices.some(choice => choice.votes === null)) {
@@ -310,14 +313,24 @@ function updateMapStatus() {
 async function selectContest(contest) {
     const thisRequest = ++requestNumber;
     contestDetails.setAttribute('aria-busy', 'true');
-    contestTitle.textContent = contest.shortName;
-    contestSummary.textContent = 'Loading precinct results…';
+    contestTitle.textContent = contest.group ? contest.name : contest.shortName;
+    contestSummary.textContent = 'Loading results…';
     resultList.replaceChildren();
 
     try {
         const detail = contest;
         if (thisRequest !== requestNumber) return;
         currentContest = detail;
+        const type = detail.geographyType || mapConfig.geography?.baseType;
+        const nextKey = !mapConfig.geography ? 'all'
+            : type === mapConfig.geography.baseType ? type
+            : `${type}:${detail.geographyParent}`;
+        if (geographyKey !== nextKey) {
+            selectedPrecinct = hoveredPrecinct = selectedPath = null;
+            drawMap({ type: 'FeatureCollection', features: visibleBoundaries(allBoundaries, mapConfig, detail) });
+            geographyKey = nextKey;
+            resetMap();
+        }
         currentPrecinctResults = new Map(Object.entries(detail.precincts).map(([id, votes]) => [id, {
             choices: detail.choices.map((choice, index) => ({
                 ...choice,
@@ -345,14 +358,22 @@ function populateContestSelect(items) {
     offices.label = mapConfig.contestGroups?.offices || 'Offices';
     propositions.label = mapConfig.contestGroups?.measures || 'Ballot measures';
 
+    const customGroups = new Map();
     contestSummaries.forEach(contest => {
         const option = document.createElement('option');
         option.value = contest.id;
-        option.textContent = contest.shortName;
-        (contest.type === 'BallotMeasure' ? propositions : offices).append(option);
+        option.textContent = contest.group ? contest.name : contest.shortName;
+        if (contest.group) {
+            if (!customGroups.has(contest.group)) {
+                const group = document.createElement('optgroup');
+                group.label = contest.group;
+                customGroups.set(contest.group, group);
+            }
+            customGroups.get(contest.group).append(option);
+        } else (contest.type === 'BallotMeasure' ? propositions : offices).append(option);
     });
 
-    contestSelect.replaceChildren(offices, propositions);
+    contestSelect.replaceChildren(...[offices, propositions, ...customGroups.values()].filter(group => group.children.length));
     contestSelect.disabled = false;
     finishContestLoading();
 }
@@ -367,6 +388,9 @@ function finishContestLoading(error = '') {
 }
 
 function drawMap(geojson) {
+    layer.replaceChildren();
+    pathByPrecinct.clear();
+    boundaryLabels.clear();
     const features = geojson.features.filter(feature => feature.geometry);
     const project = makeProjection(features);
     const fragment = document.createDocumentFragment();
@@ -379,7 +403,9 @@ function drawMap(geojson) {
         path.dataset.precinct = id;
         path.setAttribute('d', geometryPath(feature.geometry, project));
         path.setAttribute('fill-rule', 'evenodd');
-        title.textContent = `Precinct ${id}`;
+        const label = boundaryLabel(feature, mapConfig);
+        title.textContent = label;
+        boundaryLabels.set(id, label);
         path.append(title);
         path.addEventListener('pointerenter', () => {
             hoveredPrecinct = id;
@@ -426,7 +452,7 @@ function applyMetadata(results) {
         siteLink.textContent = mapConfig.siteLink.label;
         siteLink.href = mapConfig.siteLink.href;
     }
-    app.querySelector('.map-panel').setAttribute('aria-label', `Interactive precinct map: ${mapConfig.title}`);
+    app.querySelector('.map-panel').setAttribute('aria-label', `Interactive election map: ${mapConfig.title}`);
     app.querySelector('#map-title').textContent = mapConfig.title;
     app.querySelector('#map-description').textContent = mapConfig.description || `Interactive results for ${pathByPrecinct.size} precincts.`;
     const note = app.querySelector('[data-map-note]');
@@ -460,12 +486,11 @@ async function initialize() {
         ]);
         const dataset = prepareDataset(config, parseResults(resultText, config), JSON.parse(boundaryText));
         mapConfig = dataset.config;
-        drawMap(dataset.geojson);
+        allBoundaries = dataset.geojson;
         populateContestSelect(dataset.results.contests);
-        applyMetadata(dataset.results);
         loading.hidden = true;
-        defaultMapStatus();
         await selectContest(contestSummaries[0]);
+        applyMetadata(dataset.results);
     } catch (error) {
         finishContestLoading('Contests unavailable');
         contestDetails.setAttribute('aria-busy', 'false');

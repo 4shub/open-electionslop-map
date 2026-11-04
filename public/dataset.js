@@ -14,6 +14,23 @@ export function boundaryId(feature, config) {
         ? feature.id : feature.properties?.[config.precinctIdProperty], config.precinctIdPadding);
 }
 
+export function visibleBoundaries(geojson, config, contest = {}) {
+    if (!config.geography) return geojson.features;
+    const { typeProperty, parentProperty, baseType } = config.geography;
+    const type = contest.geographyType || baseType;
+    return geojson.features.filter(feature => {
+        const properties = feature.properties || {};
+        if (type === baseType) return properties[typeProperty] === baseType;
+        return (properties[typeProperty] === baseType && properties[parentProperty] !== contest.geographyParent)
+            || (properties[typeProperty] === type && properties[parentProperty] === contest.geographyParent);
+    });
+}
+
+export function boundaryLabel(feature, config) {
+    return (config.geography && feature.properties?.[config.geography.nameProperty])
+        || `Precinct ${boundaryId(feature, config)}`;
+}
+
 export function parseCsv(text) {
     const rows = [];
     let row = [], cell = '', quoted = false, endedQuote = false;
@@ -116,6 +133,10 @@ export function prepareDataset(rawConfig, rawResults, geojson) {
     }
     requireValue(config.precinctIdProperty === null || typeof config.precinctIdProperty === 'string', 'precinctIdProperty must be a property name or null for feature.id.');
     requireValue(Number.isInteger(config.precinctIdPadding) && config.precinctIdPadding >= 0 && config.precinctIdPadding <= 32, 'precinctIdPadding must be between 0 and 32.');
+    if (config.geography) {
+        requireValue(['typeProperty', 'parentProperty', 'nameProperty', 'baseType'].every(key =>
+            typeof config.geography[key] === 'string' && config.geography[key]), 'geography needs typeProperty, parentProperty, nameProperty, and baseType.');
+    }
     requireValue(geojson.type === 'FeatureCollection' && Array.isArray(geojson.features) && geojson.features.length, 'Boundaries must be a nonempty GeoJSON FeatureCollection.');
     const boundaryIds = new Set();
     const extent = [Infinity, Infinity, -Infinity, -Infinity];
@@ -173,6 +194,12 @@ export function prepareDataset(rawConfig, rawResults, geojson) {
         requireValue(declared.size === rawResults.precincts.length, 'Results contain duplicate declared precinct IDs.');
         requireValue([...declared].every(id => boundaryIds.has(id)), 'A declared result precinct has no boundary.');
         requireValue([...resultIds].every(id => declared.has(id)), 'A contest precinct is missing from the declared precinct IDs.');
+    }
+    if (config.geography) {
+        for (const contest of contests) {
+            const visible = new Set(visibleBoundaries(geojson, config, contest).map(feature => boundaryId(feature, config)));
+            requireValue(visible.size && Object.keys(contest.precincts).every(id => visible.has(id)), `Contest ${contest.id} results do not match its geography layer.`);
+        }
     }
     const election = { ...rawResults.election, ...config.election };
     requireValue(!election.lastUpdated || Number.isFinite(Date.parse(election.lastUpdated)), 'election.lastUpdated must be a valid date.');

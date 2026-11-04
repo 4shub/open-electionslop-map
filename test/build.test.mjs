@@ -5,6 +5,19 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { buildSite } from '../scripts/build.mjs';
+import { validateConfig } from '../scripts/validate-data.mjs';
+import { pathToFileURL } from 'node:url';
+
+test('external CSV datasets are packaged as JSON with self-contained paths', async t => {
+    const directory = await mkdtemp(path.join(os.tmpdir(), 'election-external-'));
+    t.after(() => rm(directory, { recursive: true, force: true }));
+    const output = path.join(directory, 'map');
+    await buildSite({ outputDirectory: output, configUrl: new URL('../public/examples/map-config.json', import.meta.url) });
+    const dataset = await validateConfig(pathToFileURL(path.join(output, 'map-config.json')));
+    assert.equal(dataset.geojson.features.length, 2);
+    assert.equal(dataset.results.contests[0].choices[0].votes, 190);
+    await assert.rejects(readFile(path.join(output, 'data/sacramento-2026-results.json')), { code: 'ENOENT' });
+});
 
 test('default builds are unbranded; host branding is injected only into that build', async t => {
     const temporary = await mkdtemp(path.join(os.tmpdir(), 'election-branding-'));

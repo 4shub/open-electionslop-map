@@ -40,6 +40,9 @@ npm run build
 npm start
 ```
 
+Build a separate dataset with `npm run build -- --config path/to/map-config.json`.
+Its data files are packaged into `dist/data/`.
+
 The Node build validates the default dataset, then copies `public/` to `dist/`.
 It stops before replacing an existing build if validation fails. Publish `dist/`
 with any static host. Both servers bind to `127.0.0.1`; `npm start` also accepts

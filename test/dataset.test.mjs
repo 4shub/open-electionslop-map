@@ -85,3 +85,22 @@ test('source links must be HTTP URLs and metadata must have a valid update time'
     assert.throws(() => prepareDataset({ ...config, sources: { results: 'javascript:alert(1)' } }, results, boundaries), /HTTP or HTTPS/);
     assert.throws(() => prepareDataset({ ...config, election: { lastUpdated: 'yesterday-ish' } }, results, boundaries), /valid date/);
 });
+
+test('jurisdiction layers replace a parent with its districts and reject hidden vote areas', async () => {
+    const { visibleBoundaries, boundaryLabel } = await import('../public/dataset.js');
+    const geo = clone(boundaries);
+    geo.features = [
+        { ...clone(geo.features[0]), properties: { code: 'city-a', unit: 'City', parent: 'a', name: 'City A' } },
+        { ...clone(geo.features[1]), properties: { code: 'city-b', unit: 'City', parent: 'b', name: 'City B' } },
+        { ...clone(geo.features[0]), properties: { code: 'district-a', unit: 'District', parent: 'a', name: 'City A District 1' } },
+        { ...clone(geo.features[1]), properties: { code: 'district-b', unit: 'District', parent: 'b', name: 'City B District 1' } },
+    ];
+    const settings = { ...config, geography: { typeProperty: 'unit', parentProperty: 'parent', nameProperty: 'name', baseType: 'City' } };
+    const contest = { id: 'council', name: 'Council', geographyType: 'District', geographyParent: 'a', choices: [{ name: 'Alex', votes: 8 }], precincts: { 'district-a': [8] } };
+    assert.deepEqual(visibleBoundaries(geo, settings).map(f => f.properties.code), ['city-a', 'city-b']);
+    assert.deepEqual(visibleBoundaries(geo, settings, contest).map(f => f.properties.code), ['city-b', 'district-a']);
+    assert.equal(boundaryLabel(geo.features[2], settings), 'City A District 1');
+    assert.equal(prepareDataset(settings, { contests: [contest] }, geo).results.contests[0].choices[0].votes, 8);
+    assert.throws(() => prepareDataset(settings, { contests: [{ ...contest, precincts: { 'city-a': [8] } }] }, geo), /geography layer/);
+    assert.deepEqual(visibleBoundaries(geo, config), geo.features);
+});
