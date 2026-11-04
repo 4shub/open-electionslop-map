@@ -125,6 +125,13 @@ export function parseResults(text, config) {
 export function prepareDataset(rawConfig, rawResults, geojson) {
     const config = { precinctIdProperty: 'precinct', precinctIdPadding: 0, ...rawConfig };
     requireValue(typeof config.title === 'string' && config.title.trim(), 'Map config needs a title.');
+    if (config.defaultZoomOverride !== undefined) {
+        const bounds = config.defaultZoomOverride?.bounds;
+        requireValue(Array.isArray(bounds) && bounds.length === 4 && bounds.every(Number.isFinite)
+            && bounds[0] >= -180 && bounds[2] <= 180 && bounds[0] < bounds[2]
+            && bounds[1] >= -85 && bounds[3] <= 85 && bounds[1] < bounds[3],
+        'defaultZoomOverride needs bounds [west, south, east, north] in longitude/latitude (latitude between -85 and 85).');
+    }
     if (config.siteLink !== undefined) {
         requireValue(typeof config.siteLink?.label === 'string' && config.siteLink.label.trim() && typeof config.siteLink.href === 'string' && config.siteLink.href.trim(), 'siteLink needs a label and href.');
         let url;

@@ -27,6 +27,7 @@ Paths are relative to the config file.
 | `countyName`, `description`, `note`, `boundariesLabel` | Text. |
 | `contestGroups` | `{ "offices": "Offices", "measures": "Ballot measures" }` |
 | `geography` | Mixed layers: `{ "typeProperty": "unitType", "parentProperty": "city", "nameProperty": "name", "baseType": "City" }`. |
+| `defaultZoomOverride` | `{ "bounds": [west, south, east, north] }` in longitude/latitude. Sets the initial and reset view; omitted fits all boundaries. |
 
 ## Boundaries: GeoJSON
 

@@ -1,4 +1,5 @@
 import { boundaryId, boundaryLabel, parseResults, prepareDataset, visibleBoundaries } from './dataset.js';
+import { defaultViewBox } from './viewport.js';
 
 let mapConfig = {};
 const FALLBACK_COLORS = [
@@ -34,6 +35,7 @@ let hoveredPrecinct = null;
 let selectedPath = null;
 let requestNumber = 0;
 let viewBox = { x: 0, y: 0, width: 1000, height: 620 };
+let initialViewBox = { ...viewBox };
 let drag = null;
 let ignoreClick = false;
 
@@ -102,7 +104,7 @@ function zoom(factor, centerX = viewBox.x + viewBox.width / 2, centerY = viewBox
 }
 
 function resetMap() {
-    setViewBox({ x: 0, y: 0, width: 1000, height: 620 });
+    setViewBox(initialViewBox);
 }
 
 function mercatorY(latitude) {
@@ -393,6 +395,7 @@ function drawMap(geojson) {
     boundaryLabels.clear();
     const features = geojson.features.filter(feature => feature.geometry);
     const project = makeProjection(features);
+    initialViewBox = defaultViewBox(mapConfig.defaultZoomOverride, project);
     const fragment = document.createDocumentFragment();
 
     features.forEach(feature => {
