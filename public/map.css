@@ -586,7 +586,7 @@ html,
     }
     .contest-panel { padding: 0.5rem 0.75rem; border-right: 0; border-bottom: 1px solid var(--border-color); }
     .contest-panel .field-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-    .contest-select { min-height: 2.75rem; font-size: 1rem; }
+    .contest-select { min-height: 2.75rem; border: 0; font-size: 1rem; }
     .map-toolbar { top: 0.5rem; right: 0.5rem; }
     .map-control { width: 2.75rem; height: 2.75rem; }
     .map-status { display: none; }
@@ -620,7 +620,7 @@ html,
     .compact-choice-count { flex: none; color: var(--font-muted-color); }
     .choice-swatch { width: 0.65rem; height: 0.65rem; border-radius: 2px; background: var(--choice-color); flex: none; }
     .compact-more { color: var(--font-muted-color); }
-    .results-chevron { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; flex: none; border: 1px solid color-mix(in srgb, var(--background-content-color) 25%, transparent); border-radius: 0.5rem; background: var(--highlight); }
+    .results-chevron { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; flex: none; border: 0; border-radius: 0; background: var(--highlight); }
     .mobile-results-toggle[aria-expanded='true'] .results-chevron svg { transform: rotate(180deg); }
     .mobile-results-toggle:focus-visible { outline: 2px solid currentColor; outline-offset: -4px; }
     .results-panel:not(.is-expanded) .results-expanded { display: none; }
