@@ -1,0 +1,31 @@
+{
+  "title": "Sacramento County - 2024 Election Map",
+  "countyName": "Sacramento County",
+  "filter": { "COUNTYFP": "067" },
+  "precinctIdProperty": "UNIQUE_ID",
+  "election": { "date": "2024-11-05" },
+  "sources": {
+    "results": "https://redistrictingdatahub.org/dataset/california-2024-general-election-precinct-level-results-and-boundaries/",
+    "boundaries": "https://redistrictingdatahub.org/dataset/california-2024-general-election-precinct-level-results-and-boundaries/"
+  },
+  "note": "Selected 2024 US Senate and Proposition 2 results from RDH. Totals sum disclosed precinct values.",
+  "contests": [
+    {
+      "id": "us-senate",
+      "name": "US Senate",
+      "choices": [
+        { "field": "G24USSDSCH", "name": "Adam Schiff", "party": "DEM", "color": "#2563eb" },
+        { "field": "G24USSRGAR", "name": "Steve Garvey", "party": "REP", "color": "#dc2626" }
+      ]
+    },
+    {
+      "id": "proposition-2",
+      "name": "Proposition 2",
+      "type": "BallotMeasure",
+      "choices": [
+        { "field": "G24PRO02YES", "name": "Yes" },
+        { "field": "G24PRO02NO", "name": "No" }
+      ]
+    }
+  ]
+}

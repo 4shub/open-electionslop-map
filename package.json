@@ -2,7 +2,7 @@
   "name": "open-electionslop-map",
   "version": "1.0.0",
   "private": true,
-  "description": "A configurable precinct election map. Bring your county\u2019s GeoJSON and CSV or JSON results.",
+  "description": "A configurable precinct election map. Bring your county’s GeoJSON and CSV or JSON results.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -14,10 +14,10 @@
   },
   "scripts": {
     "dev": "node scripts/serve.mjs",
-    "data:refresh": "node scripts/download-sacramento-election.mjs",
-    "test": "node --check public/map.js && node --check scripts/download-sacramento-election.mjs && node --test",
+    "test": "node --check public/map.js && node --test",
     "validate": "node scripts/validate-data.mjs",
     "build": "node scripts/build.mjs",
-    "start": "node scripts/serve.mjs dist"
+    "start": "node scripts/serve.mjs dist",
+    "import:rdh": "node scripts/import-rdh.mjs"
   }
 }

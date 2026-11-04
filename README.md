@@ -16,6 +16,8 @@ First, you need to get a precinct map, the [Redistricting Data Hub](https://redi
 2. Set their paths, the map title, and the precinct ID property in `public/map-config.json`.
 3. Run `npm run validate`, then serve `public/`.
 
+RDH GeoJSON/ZIP files can be converted with the optional [RDH importer](RDH_IMPORT.md), using a local download or direct file URL.
+
 
 ## Run locally
 

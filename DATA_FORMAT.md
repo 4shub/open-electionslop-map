@@ -92,3 +92,5 @@ precinct,contest,candidate,votes,party,type
 - Optional `election` and `sources`: same format as config; config values take precedence.
 
 Validate with `npm run validate` or `npm run validate -- path/to/map-config.json`.
+
+RDH downloads: [import reference](RDH_IMPORT.md).
