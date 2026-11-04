@@ -1,0 +1,15 @@
+{
+  "title": "Sacramento County - 2026 Election Map",
+  "countyName": "Sacramento County",
+  "description": "Interactive results for the 719 consolidated precincts used in the November 3, 2026 statewide general election.",
+  "results": "./data/sacramento-2026-results.json",
+  "boundaries": "./data/sacramento-2026-precincts.geojson",
+  "precinctIdProperty": "VPrecinct",
+  "precinctIdPadding": 7,
+  "boundariesLabel": "official precinct boundaries",
+  "contestGroups": {
+    "offices": "Statewide offices",
+    "measures": "Statewide propositions"
+  },
+  "note": "The results are preliminary and unofficial. Sacramento County reported all 719 election-night precincts, but additional ballots may be counted during the canvass."
+}

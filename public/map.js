@@ -1,5 +1,6 @@
-const RESULTS_DATA_URL = './data/sacramento-2026-results.json';
-const PRECINCTS_URL = './data/sacramento-2026-precincts.geojson';
+import { boundaryId, parseResults, prepareDataset } from './dataset.js';
+
+let mapConfig = {};
 const FALLBACK_COLORS = [
     'var(--alt-background-color)',
     'var(--font-muted-color)',
@@ -62,15 +63,6 @@ try {
     // Cross-origin embeds cannot observe their parent document.
 }
 
-function textOf(value) {
-    if (!Array.isArray(value)) return '';
-    return value.find(item => item.languageId === 'en')?.text || value[0]?.text || '';
-}
-
-function precinctName(value) {
-    return String(value).padStart(7, '0');
-}
-
 function candidateColor(choice, index, contestType, choices) {
     if (contestType === 'BallotMeasure') {
         return index === 0 ? '#2e8b57' : '#7e57c2';
@@ -111,7 +103,7 @@ function resetMap() {
 }
 
 function mercatorY(latitude) {
-    const radians = latitude * Math.PI / 180;
+    const radians = Math.max(-85, Math.min(85, latitude)) * Math.PI / 180;
     return Math.log(Math.tan(Math.PI / 4 + radians / 2));
 }
 
@@ -269,7 +261,7 @@ function defaultMapStatus() {
     const help = document.createElement('p');
     title.className = 'map-status-title';
     help.className = 'map-help';
-    title.textContent = `${number.format(pathByPrecinct.size)} official precinct boundaries`;
+    title.textContent = `${number.format(pathByPrecinct.size)} ${mapConfig.boundariesLabel || 'precinct boundaries'}`;
     help.textContent = currentContest ? 'Hover over a precinct or select it for detailed results.' : 'Loading contest results…';
     mapStatus.append(title, help);
 }
@@ -287,7 +279,7 @@ function renderPrecinctStatus(id) {
         return;
     }
     if (result.choices.some(choice => choice.votes === null)) {
-        mapStatus.append('Vote totals were withheld by Sacramento County.');
+        mapStatus.append(`Vote totals were withheld by ${mapConfig.countyName || 'the reporting authority'}.`);
         return;
     }
 
@@ -339,7 +331,7 @@ async function selectContest(contest) {
     } catch (error) {
         if (thisRequest !== requestNumber) return;
         contestTitle.textContent = 'Results unavailable';
-        contestSummary.textContent = 'Sacramento County’s contest service could not be loaded.';
+        contestSummary.textContent = 'This contest could not be loaded.';
         console.error(error);
     } finally {
         if (thisRequest === requestNumber) contestDetails.setAttribute('aria-busy', 'false');
@@ -350,14 +342,14 @@ function populateContestSelect(items) {
     contestSummaries = items;
     const offices = document.createElement('optgroup');
     const propositions = document.createElement('optgroup');
-    offices.label = 'Statewide offices';
-    propositions.label = 'Statewide propositions';
+    offices.label = mapConfig.contestGroups?.offices || 'Offices';
+    propositions.label = mapConfig.contestGroups?.measures || 'Ballot measures';
 
     contestSummaries.forEach(contest => {
         const option = document.createElement('option');
         option.value = contest.id;
         option.textContent = contest.shortName;
-        (contest.name.startsWith('Proposition ') ? propositions : offices).append(option);
+        (contest.type === 'BallotMeasure' ? propositions : offices).append(option);
     });
 
     contestSelect.replaceChildren(offices, propositions);
@@ -371,7 +363,7 @@ function drawMap(geojson) {
 
     features.forEach(feature => {
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        const id = precinctName(feature.properties.VPrecinct);
+        const id = boundaryId(feature, mapConfig);
         const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
         path.classList.add('precinct');
         path.dataset.precinct = id;
@@ -408,38 +400,60 @@ function drawMap(geojson) {
     layer.append(fragment);
 }
 
+async function fetchText(url) {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Could not load ${url.pathname}: HTTP ${response.status}`);
+    return response.text();
+}
+
+function applyMetadata(results) {
+    document.title = mapConfig.title;
+    app.querySelector('[data-map-heading]').textContent = mapConfig.title;
+    app.querySelector('.map-panel').setAttribute('aria-label', `Interactive precinct map: ${mapConfig.title}`);
+    app.querySelector('#map-title').textContent = mapConfig.title;
+    app.querySelector('#map-description').textContent = mapConfig.description || `Interactive results for ${pathByPrecinct.size} precincts.`;
+    const note = app.querySelector('[data-map-note]');
+    note.textContent = mapConfig.note || '';
+    note.hidden = !mapConfig.note;
+    app.querySelectorAll('[data-source]').forEach(link => {
+        const url = results.sources[link.dataset.source];
+        link.hidden = !url;
+        if (url) link.href = url;
+        else link.removeAttribute('href');
+    });
+    const updated = results.election.lastUpdated;
+    if (updated) {
+        electionStatus.dateTime = updated;
+        electionStatus.textContent = `Updated at ${new Date(updated).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}`;
+    } else {
+        electionStatus.removeAttribute('datetime');
+        electionStatus.textContent = 'Snapshot date not provided';
+    }
+}
+
 async function initialize() {
     try {
-        const [resultResponse, boundaryResponse] = await Promise.all([
-            fetch(RESULTS_DATA_URL),
-            fetch(PRECINCTS_URL),
+        // Alternate configs allow developers to preview another county without UI changes.
+        const configUrl = new URL(new URLSearchParams(location.search).get('config') || './map-config.json', location.href);
+        const config = JSON.parse(await fetchText(configUrl));
+        if (!config.results || !config.boundaries) throw new Error('Map config needs results and boundaries file paths.');
+        const [resultText, boundaryText] = await Promise.all([
+            fetchText(new URL(config.results, configUrl)),
+            fetchText(new URL(config.boundaries, configUrl)),
         ]);
-        if (!resultResponse.ok) throw new Error(`Results service returned ${resultResponse.status}`);
-        if (!boundaryResponse.ok) throw new Error(`Boundary service returned ${boundaryResponse.status}`);
-
-        const [resultData, geojson] = await Promise.all([
-            resultResponse.json(),
-            boundaryResponse.json(),
-        ]);
-        const resultIds = new Set(resultData.precincts);
-        const geometryIds = new Set(geojson.features.map(feature => precinctName(feature.properties.VPrecinct)));
-        if (resultIds.size !== geometryIds.size || [...resultIds].some(id => !geometryIds.has(id))) {
-            throw new Error('Official result precincts do not match the official boundary layer.');
-        }
-
-        drawMap(geojson);
-        populateContestSelect(resultData.contests);
-        const updated = new Date(resultData.election.lastUpdated);
-        electionStatus.dateTime = resultData.election.lastUpdated;
-        electionStatus.textContent = `Updated at ${updated.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}`;
+        const dataset = prepareDataset(config, parseResults(resultText, config), JSON.parse(boundaryText));
+        mapConfig = dataset.config;
+        drawMap(dataset.geojson);
+        populateContestSelect(dataset.results.contests);
+        applyMetadata(dataset.results);
         loading.hidden = true;
         defaultMapStatus();
         await selectContest(contestSummaries[0]);
     } catch (error) {
-        loading.textContent = 'The official Sacramento County election data could not be loaded.';
+        loading.textContent = 'Election data could not be loaded.';
         contestTitle.textContent = 'Data unavailable';
-        contestSummary.textContent = 'Try the official results link or reload this map.';
-        electionStatus.textContent = 'Official data unavailable';
+        contestSummary.textContent = error.message;
+        electionStatus.textContent = 'Data unavailable';
         console.error(error);
     }
 }

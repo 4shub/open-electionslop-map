@@ -1,0 +1,9 @@
+precinct,contest,candidate,votes,party,type,color
+north,Mayor,"Rivera, Alex",120,IND,Candidate,#e3b505
+north,Mayor,Sam Lee,80,IND,Candidate,#e76f00
+south,Mayor,"Rivera, Alex",70,IND,Candidate,#e3b505
+south,Mayor,Sam Lee,130,IND,Candidate,#e76f00
+north,Library bond,Yes,110,,BallotMeasure,
+north,Library bond,No,90,,BallotMeasure,
+south,Library bond,Yes,60,,BallotMeasure,
+south,Library bond,No,140,,BallotMeasure,

@@ -1,0 +1,15 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {"code": "north"},
+      "geometry": {"type": "Polygon", "coordinates": [[[-100, 40], [-99.9, 40], [-99.9, 40.1], [-100, 40.1], [-100, 40]]]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"code": "south"},
+      "geometry": {"type": "Polygon", "coordinates": [[[-100, 39.9], [-99.9, 39.9], [-99.9, 40], [-100, 40], [-100, 39.9]]]}
+    }
+  ]
+}

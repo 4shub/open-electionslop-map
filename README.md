@@ -1,11 +1,23 @@
 # open-electionslop-map
 
-An interactive precinct map for Sacramento County's November 3, 2026 general
-election. Select a statewide office or proposition, inspect precinct results,
-and pan or zoom the map. Built with HTML, CSS, JavaScript, and SVG; no framework,
-API keys, npm dependencies, or build step.
+A configurable precinct election map. Supply a county's GeoJSON boundaries and
+CSV or JSON results; keep the same UI. Built with HTML, CSS, JavaScript, and SVG;
+no framework, API keys, npm dependencies, or build step.
 
-The map is embedded on [shub.club](https://shub.club/sacramento-2026-election/).
+Sacramento County's November 3, 2026 general election is the bundled default
+example, embedded on [shub.club](https://shub.club/sacramento-2026-election/).
+
+## Use another county
+
+1. Put your precinct GeoJSON and results CSV/JSON in `public/data/`.
+2. Set their paths, the map title, and the precinct ID property in `public/map-config.json`.
+3. Run `npm run validate`, then serve `public/`.
+
+No HTML, CSS, or renderer changes are needed. The [data format guide](DATA_FORMAT.md)
+includes the CSV columns, JSON shape, ID matching rules, and a complete fictional
+example in `public/examples/`. A county's raw export may need a small adapter to
+match this format; the Sacramento downloader is one such adapter. There is no
+upload or drag-and-drop interface.
 
 ## Run locally
 
@@ -24,7 +36,7 @@ work because the map fetches its data files.
 To host it, publish the contents of `public/` with any static host. All assets and
 data URLs are relative, so the map works at a site's root or inside a subdirectory.
 
-## Refresh the data
+## Refresh the Sacramento example
 
 A checked-in snapshot lets the map run without calling county services from the
 browser. It is **not a live feed**. The displayed update time comes from that
@@ -57,10 +69,15 @@ snapshot metadata; the MIT code license does not relicense third-party data.
 
 - `public/index.html`: page structure and accessibility labels.
 - `public/map.css`: responsive layout and themes.
-- `public/map.js`: rendering, contest selection, and map interactions.
+- `public/map.js`: county-independent rendering, contest selection, and map interactions.
+- `public/dataset.js`: shared CSV parsing, validation, and precinct joins.
+- `public/map-config.json`: the default county configuration.
+- `public/examples/`: a second county configuration with fictional CSV and GeoJSON.
+- `DATA_FORMAT.md`: the developer data contract and adaptation guide.
+- `scripts/validate-data.mjs`: validates any local county configuration.
 - `public/data/`: results and precinct geometry snapshots.
 - `scripts/download-sacramento-election.mjs`: refreshes the snapshots.
-- `test/data.test.mjs`: validates the snapshots and their precinct joins.
+- `test/`: Sacramento regression checks, another county, and invalid-data cases.
 
 The map follows the system color scheme. When embedded on the same origin, it
 also follows shub.club's theme cookie and parent page theme.

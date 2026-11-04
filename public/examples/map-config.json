@@ -1,0 +1,9 @@
+{
+  "title": "Example County - Sample Election Map",
+  "countyName": "Example County",
+  "results": "./results.csv",
+  "boundaries": "./precincts.geojson",
+  "precinctIdProperty": "code",
+  "election": {"lastUpdated": "2026-11-04T12:00:00Z"},
+  "note": "Fictional sample data for adapting the map to another county."
+}

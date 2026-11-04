@@ -40,13 +40,18 @@ test('each contest has valid choices and aligned precinct vote arrays', () => {
 test('the standalone page uses portable asset paths and exposes its source', async () => {
     const html = await read('index.html');
     const js = await read('map.js');
+    const config = JSON.parse(await read('map-config.json'));
     assert.ok(!html.includes('webc:'));
     assert.ok(!html.startsWith('---'));
     assert.ok(html.includes('https://github.com/4shub/open-electionslop-map'));
-    for (const path of ['map.css', 'map.js', 'data/sacramento-2026-results.json',
-        'data/sacramento-2026-precincts.geojson']) {
+    for (const path of ['map.css', 'map.js', 'dataset.js', 'map-config.json']) {
         assert.ok((html + js).includes(`./${path}`));
         assert.ok((await read(path)).length);
     }
+    assert.ok((await read(config.results)).length);
+    assert.ok((await read(config.boundaries)).length);
+    assert.ok(!js.includes('sacramento-2026-'));
+    assert.ok(!js.includes('VPrecinct'));
+    assert.ok(html.includes('type="module"'));
     assert.ok(!js.includes('/public/data/'));
 });
