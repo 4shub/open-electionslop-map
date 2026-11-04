@@ -1,13 +1,6 @@
 # RDH imports
-
-Input: GeoJSON or a ZIP containing GeoJSON, from a local file or direct file URL.
-Output: `map-config.json`, `precincts.geojson`, and `results.json` in a new directory.
-Node.js 22+; no additional dependencies. The default Sacramento 2026 data is unchanged.
-
-## Download
-
 Choose an election on [RDH](https://redistrictingdatahub.org/data/download-data/)
-and read its metadata. Joined precinct files may already be GeoJSON; the
+and look for a GeoJSON; the
 [California 2024 file](https://redistrictingdatahub.org/dataset/california-2024-general-election-precinct-level-results-and-boundaries/)
 is a GeoJSON ZIP with vote counts in feature properties.
 
