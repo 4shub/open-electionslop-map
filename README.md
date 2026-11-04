@@ -40,25 +40,6 @@ with any static host. Both servers bind to `127.0.0.1`; `npm start` also accepts
 `-- --port 8001`. All asset and data URLs are relative, so the map works at a
 site's root or inside a subdirectory. You can also serve `public/` directly.
 
-## Refresh the Sacramento example
-
-A checked-in snapshot lets the map run without calling county services from the
-browser. It is **not a live feed**. The displayed update time comes from that
-snapshot. Results may change during the canvass; use the official sources for
-the latest information.
-
-With Node.js 22 or newer:
-
-```sh
-npm run data:refresh
-npm test
-```
-
-No `npm install` is needed. The downloader fetches statewide offices and
-propositions, verifies that all 719 result precincts match the official boundary
-layer, and writes both files into `public/data/`. Review and commit those files
-to publish a new snapshot. Do not infer missing or withheld vote totals; the map
-preserves them as unavailable.
 
 ## Sources
 
