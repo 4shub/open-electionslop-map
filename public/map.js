@@ -419,6 +419,13 @@ async function fetchText(url) {
 function applyMetadata(results) {
     document.title = mapConfig.title;
     app.querySelector('[data-map-heading]').textContent = mapConfig.title;
+    const siteLink = app.querySelector('[data-site-link]');
+    const siteSeparator = app.querySelector('[data-site-separator]');
+    siteLink.hidden = siteSeparator.hidden = !mapConfig.siteLink;
+    if (mapConfig.siteLink) {
+        siteLink.textContent = mapConfig.siteLink.label;
+        siteLink.href = mapConfig.siteLink.href;
+    }
     app.querySelector('.map-panel').setAttribute('aria-label', `Interactive precinct map: ${mapConfig.title}`);
     app.querySelector('#map-title').textContent = mapConfig.title;
     app.querySelector('#map-description').textContent = mapConfig.description || `Interactive results for ${pathByPrecinct.size} precincts.`;

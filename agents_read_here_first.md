@@ -121,5 +121,7 @@ source, and a deployed website. A checked-in snapshot is not a live feed.
 When this is a submodule of shubdotclub, commit authorized map changes **inside
 this repository**, then update the parent's submodule pointer to that published
 commit. Never bundle unrelated parent-repository edits into a map commit. The
-parent copies `public/` directly to `/sacramento-2026-election/`; a standalone
-host should publish `dist/` after the Node build (or serve `public/` directly).
+parent uses the Node builder to inject its own `siteLink` into a separate output
+and serves it at `/sacramento-2026-election/`. Keep host branding out of this
+repository’s default config. A standalone host should publish `dist/` after the
+Node build (or serve `public/` directly).

@@ -108,6 +108,12 @@ export function parseResults(text, config) {
 export function prepareDataset(rawConfig, rawResults, geojson) {
     const config = { precinctIdProperty: 'precinct', precinctIdPadding: 0, ...rawConfig };
     requireValue(typeof config.title === 'string' && config.title.trim(), 'Map config needs a title.');
+    if (config.siteLink !== undefined) {
+        requireValue(typeof config.siteLink?.label === 'string' && config.siteLink.label.trim() && typeof config.siteLink.href === 'string' && config.siteLink.href.trim(), 'siteLink needs a label and href.');
+        let url;
+        try { url = new URL(config.siteLink.href, 'https://map.example/'); } catch { /* Validated below. */ }
+        requireValue(url && ['http:', 'https:'].includes(url.protocol), 'siteLink href must be an HTTP(S) or relative URL.');
+    }
     requireValue(config.precinctIdProperty === null || typeof config.precinctIdProperty === 'string', 'precinctIdProperty must be a property name or null for feature.id.');
     requireValue(Number.isInteger(config.precinctIdPadding) && config.precinctIdPadding >= 0 && config.precinctIdPadding <= 32, 'precinctIdPadding must be between 0 and 32.');
     requireValue(geojson.type === 'FeatureCollection' && Array.isArray(geojson.features) && geojson.features.length, 'Boundaries must be a nonempty GeoJSON FeatureCollection.');

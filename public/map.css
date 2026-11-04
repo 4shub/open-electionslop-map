@@ -1,4 +1,4 @@
-/* Shared visual foundations, extracted from shub.club. */
+/* Shared map visual foundations. */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 @font-face {
     font-family: 'Rethink Sans';
@@ -215,6 +215,10 @@ html,
             flex: none;
             font-size: inherit;
             line-height: inherit;
+        }
+
+        .election-title-line [hidden] {
+            display: none;
         }
 
         .election-status {

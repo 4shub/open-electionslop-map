@@ -47,6 +47,16 @@ with any static host. Both servers bind to `127.0.0.1`; `npm start` also accepts
 site's root or inside a subdirectory. You can also serve `public/` directly.
 
 
+## Site link
+
+The map has no site branding by default. Set `siteLink` in the map config, or inject it only into a build:
+
+```sh
+MAP_SITE_LABEL="[My site]" MAP_SITE_URL="https://example.org/" npm run build
+```
+
+This writes branding to `dist/map-config.json`; source data and config stay unchanged.
+
 ## Sources
 
 - [Sacramento County official results](https://results.saccounty.gov/results/public/sacramento-county-ca/69)
