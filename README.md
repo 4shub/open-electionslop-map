@@ -6,6 +6,9 @@
 
 Open ElectonSlop Map is a template for you to build your own interactive personal election results maps. I use it myself on my personal site [shub.club](https://shub.club/sacramento-2026-election/) for the Sacramento County Races, but you can use it for any race in America (or maybe the world, I haven't tried)
 
+## Demo
+[Sacramento 2026 Election](https://shub.club/sacramento-2026-election/) 
+
 ## Setup Instructions
 First, you need to get a precinct map, the [Redistricting Data Hub](https://redistrictingdatahub.org/data/download-data/) has good sources, though might be missing 2026 exact precinct information. [California](https://statewidedatabase.org/) has their own site, as well as each county sometime will just release their own like [Sacramento](https://data-sacramentocounty.opendata.arcgis.com/maps/255dd4348bd045cea5c7c4ea949a5b4a)'s. Just make sure it conforms with our  [data format guide](DATA_FORMAT.md).
 
