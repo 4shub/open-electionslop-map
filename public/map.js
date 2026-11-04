@@ -1,5 +1,5 @@
 import { boundaryId, boundaryLabel, parseResults, prepareDataset, visibleBoundaries } from './dataset.js';
-import { defaultViewBox } from './viewport.js';
+import { defaultViewBox, votingAreaViewBox } from './viewport.js';
 
 let mapConfig = {};
 const FALLBACK_COLORS = [
@@ -25,6 +25,8 @@ const percent = new Intl.NumberFormat('en-US', { minimumFractionDigits: 1, maxim
 const pathByPrecinct = new Map();
 const boundaryLabels = new Map();
 let allBoundaries = null;
+let mapFeatures = [];
+let mapProjection = null;
 let geographyKey = null;
 
 let contestSummaries = [];
@@ -83,7 +85,7 @@ function candidateColor(choice, index, contestType, choices) {
 }
 
 function setViewBox(next) {
-    const minWidth = 90;
+    const minWidth = Math.min(90, initialViewBox.width / 4);
     const maxWidth = 1300;
     const width = Math.min(maxWidth, Math.max(minWidth, next.width));
     const height = width * 0.62;
@@ -340,6 +342,14 @@ async function selectContest(contest) {
                 color: candidateColor(choice, index, detail.type, detail.choices),
             })),
         }]));
+        if (mapConfig.autoMoveToVotingArea) {
+            selectedPath?.classList.remove('is-selected');
+            selectedPrecinct = hoveredPrecinct = selectedPath = null;
+            const votingFeatures = mapFeatures.filter(feature => currentPrecinctResults.has(boundaryId(feature, mapConfig)));
+            initialViewBox = votingAreaViewBox(votingFeatures, mapProjection)
+                || defaultViewBox(mapConfig.defaultZoomOverride, mapProjection);
+            resetMap();
+        }
         renderCountywideResults(detail);
         renderMapColors();
         updateMapStatus();
@@ -395,6 +405,8 @@ function drawMap(geojson) {
     boundaryLabels.clear();
     const features = geojson.features.filter(feature => feature.geometry);
     const project = makeProjection(features);
+    mapFeatures = features;
+    mapProjection = project;
     initialViewBox = defaultViewBox(mapConfig.defaultZoomOverride, project);
     const fragment = document.createDocumentFragment();
 

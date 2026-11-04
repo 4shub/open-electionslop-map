@@ -28,6 +28,7 @@ Paths are relative to the config file.
 | `contestGroups` | `{ "offices": "Offices", "measures": "Ballot measures" }` |
 | `geography` | Mixed layers: `{ "typeProperty": "unitType", "parentProperty": "city", "nameProperty": "name", "baseType": "City" }`. |
 | `defaultZoomOverride` | `{ "bounds": [west, south, east, north] }` in longitude/latitude. Sets the initial and reset view; omitted fits all boundaries. |
+| `autoMoveToVotingArea` | `true` fits each selected contest's result boundaries, including zero/withheld counts. Reset restores that contest's view. Falls back to `defaultZoomOverride` when no reporting boundaries exist. Default `false`. |
 
 ## Boundaries: GeoJSON
 

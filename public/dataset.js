@@ -125,6 +125,7 @@ export function parseResults(text, config) {
 export function prepareDataset(rawConfig, rawResults, geojson) {
     const config = { precinctIdProperty: 'precinct', precinctIdPadding: 0, ...rawConfig };
     requireValue(typeof config.title === 'string' && config.title.trim(), 'Map config needs a title.');
+    requireValue(config.autoMoveToVotingArea === undefined || typeof config.autoMoveToVotingArea === 'boolean', 'autoMoveToVotingArea must be true or false.');
     if (config.defaultZoomOverride !== undefined) {
         const bounds = config.defaultZoomOverride?.bounds;
         requireValue(Array.isArray(bounds) && bounds.length === 4 && bounds.every(Number.isFinite)
