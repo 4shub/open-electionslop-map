@@ -1,4 +1,5 @@
 import { candidateColor } from './colors.js';
+import { validateLocalityBoundaries } from './locality-boundaries.js';
 import { contestForHash, contestUrl } from './contest-links.js';
 import { boundaryId, boundaryLabel, parseResults, prepareDataset, visibleBoundaries } from './dataset.js';
 import { defaultViewBox, votingAreaViewBox } from './viewport.js';
@@ -19,6 +20,8 @@ const electionStatus = app.querySelector('[data-election-status]');
 const resultList = app.querySelector('[data-results]');
 const svg = app.querySelector('[data-map]');
 const layer = app.querySelector('[data-precinct-layer]');
+const localityLayer = app.querySelector('[data-locality-layer]');
+let localityBoundaries = null;
 const mapStatus = app.querySelector('[data-map-status]');
 const loading = app.querySelector('[data-loading]');
 const resultsPanel = app.querySelector('.results-panel');
@@ -529,6 +532,13 @@ function drawMap(geojson) {
     });
 
     layer.append(fragment);
+    localityLayer.replaceChildren();
+    for (const feature of localityBoundaries?.features || []) {
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', geometryPath(feature.geometry, project));
+        path.classList.add('locality-boundary');
+        localityLayer.append(path);
+    }
 }
 
 async function fetchText(url) {
@@ -583,10 +593,12 @@ async function initialize() {
         const configUrl = new URL(new URLSearchParams(location.search).get('config') || './map-config.json', location.href);
         const config = JSON.parse(await fetchText(configUrl));
         if (!config.results || !config.boundaries) throw new Error('Map config needs results and boundaries file paths.');
-        const [resultText, boundaryText] = await Promise.all([
+        const [resultText, boundaryText, localityText] = await Promise.all([
             fetchText(new URL(config.results, configUrl)),
             fetchText(new URL(config.boundaries, configUrl)),
+            config.localityBoundaries ? fetchText(new URL(config.localityBoundaries, configUrl)) : null,
         ]);
+        localityBoundaries = localityText ? validateLocalityBoundaries(JSON.parse(localityText)) : null;
         const dataset = prepareDataset(config, parseResults(resultText, config), JSON.parse(boundaryText));
         mapConfig = dataset.config;
         allBoundaries = dataset.geojson;

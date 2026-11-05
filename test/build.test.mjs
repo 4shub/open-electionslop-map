@@ -8,6 +8,30 @@ import { buildSite } from '../scripts/build.mjs';
 import { validateConfig } from '../scripts/validate-data.mjs';
 import { pathToFileURL } from 'node:url';
 
+test('optional locality outlines are packaged and versioned without joining precinct result IDs', async t => {
+    const directory = await mkdtemp(path.join(os.tmpdir(), 'election-localities-'));
+    t.after(() => rm(directory, { recursive: true, force: true }));
+    const source = path.join(directory, 'source');
+    await cp(new URL('../public/examples/', import.meta.url), source, { recursive: true });
+    const configFile = path.join(source, 'map-config.json');
+    const config = JSON.parse(await readFile(configFile, 'utf8'));
+    const outlines = JSON.parse(await readFile(path.join(source, config.boundaries), 'utf8'));
+    outlines.features.forEach(f => { f.properties = { name: 'Example city' }; });
+    config.localityBoundaries = './cities.geojson';
+    await writeFile(configFile, JSON.stringify(config));
+    await writeFile(path.join(source, 'cities.geojson'), JSON.stringify(outlines));
+    const output = path.join(directory, 'map');
+    const built = await buildSite({ outputDirectory: output, configUrl: pathToFileURL(configFile) });
+    assert.match(built.config.localityBoundaries, /^\.\/data\/localities\.geojson\?v=/);
+    const dataset = await validateConfig(pathToFileURL(path.join(output, 'map-config.json')));
+    assert.deepEqual(dataset.localityBoundaries, outlines);
+    assert.equal(dataset.geojson.features.length, 2);
+    outlines.features[0].geometry.coordinates = [];
+    await writeFile(path.join(source, 'cities.geojson'), JSON.stringify(outlines));
+    await assert.rejects(buildSite({ outputDirectory: output, configUrl: pathToFileURL(configFile) }), /Locality boundaries/);
+    assert.equal((await validateConfig(pathToFileURL(path.join(output, 'map-config.json')))).localityBoundaries.features.length, 2);
+});
+
 test('external CSV datasets are packaged as JSON with self-contained paths', async t => {
     const directory = await mkdtemp(path.join(os.tmpdir(), 'election-external-'));
     t.after(() => rm(directory, { recursive: true, force: true }));

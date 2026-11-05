@@ -452,6 +452,15 @@ html,
             fill: var(--highlight);
         }
 
+        [data-locality-layer] { pointer-events: none; }
+        .locality-boundary {
+            fill: none;
+            stroke: color-mix(in srgb, var(--background-content-color) 65%, var(--background-color));
+            stroke-width: 0.95;
+            vector-effect: non-scaling-stroke;
+            stroke-linejoin: round;
+        }
+
         .precinct:hover,
         .precinct.is-selected {
             stroke: var(--background-content-color);

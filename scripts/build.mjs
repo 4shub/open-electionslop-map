@@ -36,6 +36,7 @@ async function versionAssets(output, config) {
         await writeFile(filename, contents);
     }
     const versionedConfig = { ...config, results: versionUrl(config.results), boundaries: versionUrl(config.boundaries) };
+    if (config.localityBoundaries) versionedConfig.localityBoundaries = versionUrl(config.localityBoundaries);
     await writeFile(path.join(output, 'map-config.json'), JSON.stringify(versionedConfig, null, 2) + '\n');
     return { config: versionedConfig, assetVersion: version };
 }
@@ -85,6 +86,10 @@ export async function buildSite({ outputDirectory, siteLink, configUrl } = {}) {
         config = { ...config, resultsFormat: 'json', results: './data/results.json', boundaries: './data/precincts.geojson' };
         await writeFile(path.join(dataDirectory, 'results.json'), JSON.stringify(dataset.results) + '\n');
         await writeFile(path.join(dataDirectory, 'precincts.geojson'), JSON.stringify(dataset.geojson) + '\n');
+        if (dataset.localityBoundaries) {
+            config.localityBoundaries = './data/localities.geojson';
+            await writeFile(path.join(dataDirectory, 'localities.geojson'), JSON.stringify(dataset.localityBoundaries) + '\n');
+        }
     }
     await writeFile(path.join(output, 'map-config.json'), JSON.stringify(config, null, 2) + '\n');
     await renderMetadata(output, config, dataset.results);

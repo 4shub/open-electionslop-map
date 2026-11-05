@@ -30,6 +30,7 @@ Paths are relative to the config file.
 | `geography` | Mixed layers: `{ "typeProperty": "unitType", "parentProperty": "city", "nameProperty": "name", "baseType": "City" }`. |
 | `defaultZoomOverride` | `{ "bounds": [west, south, east, north] }` in longitude/latitude. Sets the initial and reset view; omitted fits all boundaries. |
 | `autoMoveToVotingArea` | `true` fits each selected contest's result boundaries, including zero/withheld counts. Reset restores that contest's view. Falls back to `defaultZoomOverride` when no reporting boundaries exist. Default `false`. |
+| `localityBoundaries` | Optional GeoJSON path, e.g. `"./localities.geojson"`. WGS84 `FeatureCollection` of `Polygon`/`MultiPolygon` city or community outlines. Drawn as darker lines; no result IDs required. Omitted by default. |
 
 ## Boundaries: GeoJSON
 

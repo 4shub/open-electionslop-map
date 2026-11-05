@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import path from 'node:path';
 import { parseResults, prepareDataset } from '../public/dataset.js';
+import { validateLocalityBoundaries } from '../public/locality-boundaries.js';
 
 export async function validateConfig(configUrl = new URL('../public/map-config.json', import.meta.url)) {
     const config = JSON.parse(await readFile(configUrl, 'utf8'));
@@ -11,6 +12,7 @@ export async function validateConfig(configUrl = new URL('../public/map-config.j
         readFile(new URL(config.boundaries, configUrl), 'utf8'),
     ]);
     const dataset = prepareDataset(config, parseResults(text, config), JSON.parse(boundaries));
+    if (config.localityBoundaries) dataset.localityBoundaries = validateLocalityBoundaries(JSON.parse(await readFile(new URL(config.localityBoundaries, configUrl), 'utf8')));
     return dataset;
 }
 
