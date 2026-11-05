@@ -335,7 +335,7 @@ function renderPrecinctStatus(id) {
     mapStatus.append(title);
 
     if (!result) {
-        mapStatus.append(mapConfig.geography ? 'This contest was not held in this area.' : 'This contest was not on the precinct ballot.');
+        mapStatus.append(mapConfig.geography ? 'No results are available for this area in this snapshot.' : 'This contest was not on the precinct ballot.');
         return;
     }
     if (result.choices.some(choice => choice.votes === null)) {
@@ -458,7 +458,8 @@ function populateContestSelect(items) {
         } else (contest.type === 'BallotMeasure' ? propositions : offices).append(option);
     });
 
-    contestSelect.replaceChildren(...[offices, propositions, ...customGroups.values()].filter(group => group.children.length));
+    const groups = [offices, propositions, ...customGroups.values()].filter(group => group.children.length);
+    contestSelect.replaceChildren(...(groups.length === 1 ? [...groups[0].children] : groups));
     contestSelect.disabled = false;
     finishContestLoading();
 }
