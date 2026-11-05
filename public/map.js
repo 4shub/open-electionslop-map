@@ -1,4 +1,5 @@
 import { candidateColor } from './colors.js';
+import { contestForHash, contestUrl } from './contest-links.js';
 import { boundaryId, boundaryLabel, parseResults, prepareDataset, visibleBoundaries } from './dataset.js';
 import { defaultViewBox, votingAreaViewBox } from './viewport.js';
 import { attachMapGestures } from './gestures.js';
@@ -376,6 +377,7 @@ function expandResults(expanded) {
 
 async function selectContest(contest) {
     const thisRequest = ++requestNumber;
+    contestSelect.value = contest.id;
     contestDetails.setAttribute('aria-busy', 'true');
     contestTitle.textContent = contest.group ? contest.name : contest.shortName;
     contestSummary.textContent = 'Loading results…';
@@ -590,7 +592,7 @@ async function initialize() {
         populateContestSelect(dataset.results.contests);
         loading.hidden = true;
         applyMetadata(dataset.results);
-        await selectContest(contestSummaries[0]);
+        await selectContest(contestForHash(contestSummaries, location.hash));
     } catch (error) {
         finishContestLoading('Contests unavailable');
         contestDetails.setAttribute('aria-busy', 'false');
@@ -611,8 +613,19 @@ const viewAnimator = createViewAnimator({
 
 contestSelect.addEventListener('change', () => {
     const contest = contestSummaries.find(item => item.id === contestSelect.value);
-    if (contest) selectContest(contest);
+    if (!contest) return;
+    const url = contestUrl(location.href, contest.id);
+    if (url !== location.href) history.pushState(null, '', url);
+    selectContest(contest);
 });
+
+function selectLinkedContest() {
+    const contest = contestForHash(contestSummaries, location.hash);
+    if (contest && contest.id !== currentContest?.id) selectContest(contest);
+}
+
+window.addEventListener('hashchange', selectLinkedContest);
+window.addEventListener('popstate', selectLinkedContest);
 
 app.querySelector('[data-zoom-in]').addEventListener('click', () => zoom(0.72));
 app.querySelector('[data-zoom-out]').addEventListener('click', () => zoom(1.38));
