@@ -24,7 +24,13 @@ function harness(aspect = 0.62) {
         svg.dispatchEvent(event);
         return event;
     }
-    return { send, gestures, toMapPoint, get view() { return view; }, captured };
+    function loseChildCapture() {
+        const event = new Event('lostpointercapture');
+        Object.defineProperty(event, 'target', { value: {} });
+        event.pointerId = 1;
+        svg.dispatchEvent(event);
+    }
+    return { send, gestures, toMapPoint, loseChildCapture, get view() { return view; }, captured };
 }
 const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-7, `${a} != ${b}`);
 
@@ -62,6 +68,20 @@ test('a tap still selects, while dragging and cancelled gestures suppress clicks
     const view = { ...map.view };
     map.send('pointermove', { clientX: 400 });
     assert.deepEqual(map.view, view);
+});
+
+test('one-finger pan survives implicit capture moving from a precinct path to the SVG', () => {
+    const map = harness(1.6);
+    map.send('pointerdown', { pointerType: 'touch' });
+    map.send('pointermove', { pointerType: 'touch', clientX: 125, clientY: 120 });
+    const before = { ...map.view };
+    map.loseChildCapture();
+    map.send('pointermove', { pointerType: 'touch', clientX: 150, clientY: 140 });
+    near(map.view.x, before.x - 50);
+    near(map.view.y, before.y - 40);
+    near(map.view.width, 1000);
+    map.send('pointerup', { pointerType: 'touch' });
+    assert.ok(map.gestures.isClickSuppressed());
 });
 
 test('trackpad Ctrl+wheel zooms in both directions and prevents browser zoom', () => {

@@ -55,7 +55,11 @@ export function attachMapGestures(svg, { getViewBox, setViewBox, toMapPoint, cla
     }
     svg.addEventListener('pointerup', endPointer);
     svg.addEventListener('pointercancel', endPointer);
-    svg.addEventListener('lostpointercapture', endPointer);
+    // Touch starts with implicit capture on the precinct path. Transferring it
+    // to the SVG bubbles a lost-capture event from that child, not a finished pan.
+    svg.addEventListener('lostpointercapture', event => {
+        if (event.target === svg) endPointer(event);
+    });
     svg.addEventListener('wheel', event => {
         event.preventDefault();
         if (safariGesture) return;

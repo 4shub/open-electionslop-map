@@ -1,3 +1,4 @@
+import { candidateColor } from './colors.js';
 import { boundaryId, boundaryLabel, parseResults, prepareDataset, visibleBoundaries } from './dataset.js';
 import { defaultViewBox, votingAreaViewBox } from './viewport.js';
 import { attachMapGestures } from './gestures.js';
@@ -6,12 +7,7 @@ import { formatUpdated, contestMetadata } from './metadata.js';
 
 let mapConfig = {};
 let mapResults = {};
-const FALLBACK_COLORS = [
-    'var(--alt-background-color)',
-    'var(--font-muted-color)',
-    'var(--added-text-color)',
-    'var(--removed-text-color)',
-];
+
 
 const app = document.querySelector('[data-election-map]');
 const contestSelect = app.querySelector('[data-contest]');
@@ -76,19 +72,6 @@ try {
     // Cross-origin embeds cannot observe their parent document.
 }
 
-function candidateColor(choice, index, contestType, choices) {
-    if (contestType === 'BallotMeasure') {
-        return index === 0 ? '#2e8b57' : '#7e57c2';
-    }
-    if (choices.length > 1 && choices.every(candidate => candidate.party === 'DEM')) {
-        return index === 0 ? '#e3b505' : '#e76f00';
-    }
-    if (choices.length > 1 && choices.every(candidate => !candidate.party)) {
-        return ['#e3b505', '#e76f00', '#2e8b57'][index % 3];
-    }
-    if (choice.color) return choice.color;
-    return FALLBACK_COLORS[index % FALLBACK_COLORS.length];
-}
 
 function clampWidth(value) {
     const minWidth = Math.min(90, initialViewBox.width / 4);
@@ -252,7 +235,12 @@ function renderCountywideResults(contest) {
         : `No ${contest.reportingAreaLabel || 'countywide'} result has been reported.`;
     resultList.replaceChildren(...choices.map(choice => createResultRow(choice, total)));
     const scope = contest.reportingAreaLabel || 'countywide';
-    app.querySelector('[data-results-heading]').textContent = `${scope.charAt(0).toUpperCase() + scope.slice(1)} results`;
+    renderCompactResults(choices, `${scope.charAt(0).toUpperCase() + scope.slice(1)} results`);
+}
+
+function renderCompactResults(choices, heading, message = '') {
+    const total = totalVotes(choices);
+    app.querySelector('[data-results-heading]').textContent = heading;
     const compact = app.querySelector('[data-compact-results]');
     const topChoices = [...choices].sort((a, b) => (b.votes ?? -1) - (a.votes ?? -1)).slice(0, 2);
     compact.replaceChildren(...topChoices.map(choice => {
@@ -277,6 +265,7 @@ function renderCountywideResults(contest) {
         more.textContent = `+${choices.length - 2} more`;
         compact.append(more);
     }
+    if (message) compact.textContent = message;
 }
 
 function clearMapClasses(path) {
@@ -367,6 +356,17 @@ function updateMapStatus() {
     else defaultMapStatus();
     mobileMapStatus.hidden = !id;
     mobileMapStatus.replaceChildren(...[...mapStatus.childNodes].map(node => node.cloneNode(true)));
+    if (selectedPrecinct) {
+        const result = currentPrecinctResults.get(selectedPrecinct);
+        const choices = result?.choices || [];
+        const message = !result ? 'No results available' : choices.some(choice => choice.votes === null) ? 'Vote totals withheld' : totalVotes(choices) === 0 ? 'No votes reported' : '';
+        renderCompactResults(choices, boundaryLabels.get(selectedPrecinct) || `Precinct ${selectedPrecinct}`, message);
+    } else if (currentContest) {
+        const choices = currentContest.choices.map((choice, index, all) => ({ ...choice, color: candidateColor(choice, index, currentContest.type, all) }));
+        const scope = currentContest.reportingAreaLabel || 'countywide';
+        renderCompactResults(choices, `${scope.charAt(0).toUpperCase() + scope.slice(1)} results`);
+    }
+
 }
 
 function expandResults(expanded) {
@@ -518,7 +518,6 @@ function drawMap(geojson) {
                 selectedPrecinct = id;
                 selectedPath = path;
                 path.classList.add('is-selected');
-                if (window.matchMedia('(max-width: 720px)').matches) expandResults(true);
             }
             updateMapStatus();
         });
@@ -590,8 +589,8 @@ async function initialize() {
         allBoundaries = dataset.geojson;
         populateContestSelect(dataset.results.contests);
         loading.hidden = true;
-        await selectContest(contestSummaries[0]);
         applyMetadata(dataset.results);
+        await selectContest(contestSummaries[0]);
     } catch (error) {
         finishContestLoading('Contests unavailable');
         contestDetails.setAttribute('aria-busy', 'false');
