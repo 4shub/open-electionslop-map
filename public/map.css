@@ -581,6 +581,39 @@ html,
 .map-panel { grid-area: map; }
 .results-expanded { display: flex; flex-direction: column; gap: 0.75rem; }
 .mobile-results-toggle, .mobile-map-status, .mobile-updated { display: none; }
+.contest-navigation { display: none; }
+
+@media (min-width: 1000px) {
+    .election-layout {
+        grid-template-columns: clamp(15rem, 20vw, 22rem) minmax(0, 1fr) clamp(15rem, 18vw, 20rem);
+        grid-template-rows: minmax(0, 1fr);
+        grid-template-areas: 'selector map results';
+    }
+    .contest-panel {
+        overflow-y: auto;
+        padding: 0 0 1rem;
+        border-right: 1px solid var(--border-color);
+        overscroll-behavior: contain;
+    }
+    .contest-panel > .field-label {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        margin: 0;
+        padding: 1rem;
+        background: var(--background-color);
+        border-bottom: 1px solid var(--border-color);
+    }
+    .contest-panel[data-contest-list-ready] .contest-control { display: none; }
+    .contest-navigation { display: block; }
+    .contest-navigation h3 { margin: 0; padding: 1.25rem 1rem 0.5rem; font-size: 0.8rem; color: var(--font-muted-color); }
+    .contest-navigation ul { list-style: none; padding: 0; margin: 0; }
+    .contest-navigation button { display: block; width: 100%; padding: 0.65rem 1rem; text-align: left; font-size: 0.9rem; line-height: 1.4; }
+    .contest-navigation button:hover { background: var(--highlight); }
+    .contest-navigation button[aria-current='true'] { background: var(--highlight); box-shadow: inset 3px 0 currentColor; font-weight: 600; }
+    .contest-navigation button:focus-visible { outline: 2px solid currentColor; outline-offset: -3px; }
+    .results-panel { padding-top: 1rem; border-right: 0; border-left: 1px solid var(--border-color); }
+}
 
 @media (max-width: 720px) {
     html, body { overflow: hidden; }

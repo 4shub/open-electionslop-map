@@ -13,6 +13,7 @@ let mapResults = {};
 
 const app = document.querySelector('[data-election-map]');
 const contestSelect = app.querySelector('[data-contest]');
+const contestNavigation = app.querySelector('[data-contest-navigation]');
 const contestDetails = app.querySelector('[data-contest-details]');
 const contestTitle = app.querySelector('[data-contest-title]');
 const contestSummary = app.querySelector('[data-contest-summary]');
@@ -381,6 +382,15 @@ function expandResults(expanded) {
 async function selectContest(contest) {
     const thisRequest = ++requestNumber;
     contestSelect.value = contest.id;
+    contestNavigation.querySelectorAll('button').forEach(button => {
+        const active = button.dataset.contestId === String(contest.id);
+        button.tabIndex = active ? 0 : -1;
+        if (active) {
+            button.setAttribute('aria-current', 'true');
+            if (window.matchMedia('(min-width: 1000px)').matches) button.scrollIntoView({ block: 'nearest' });
+        }
+        else button.removeAttribute('aria-current');
+    });
     contestDetails.setAttribute('aria-busy', 'true');
     contestTitle.textContent = contest.group ? contest.name : contest.shortName;
     contestSummary.textContent = 'Loading results…';
@@ -465,6 +475,29 @@ function populateContestSelect(items) {
 
     const groups = [offices, propositions, ...customGroups.values()].filter(group => group.children.length);
     contestSelect.replaceChildren(...(groups.length === 1 ? [...groups[0].children] : groups));
+    const navigation = document.createDocumentFragment();
+    for (const group of groups) {
+        const section = document.createElement('section');
+        const heading = document.createElement('h3');
+        const list = document.createElement('ul');
+        heading.textContent = group.label;
+        section.append(heading, list);
+        // A single optgroup's options were moved into the select above.
+        const options = groups.length === 1 ? [...contestSelect.options] : [...group.children];
+        for (const option of options) {
+            const item = document.createElement('li');
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = option.textContent;
+            button.dataset.contestId = option.value;
+            button.tabIndex = -1;
+            item.append(button);
+            list.append(item);
+        }
+        navigation.append(section);
+    }
+    contestNavigation.replaceChildren(navigation);
+    contestSelect.closest('.contest-panel').setAttribute('data-contest-list-ready', '');
     contestSelect.disabled = false;
     finishContestLoading();
 }
@@ -624,12 +657,41 @@ const viewAnimator = createViewAnimator({
     onStateChange: active => svg.toggleAttribute('data-view-transition', active),
 });
 
-contestSelect.addEventListener('change', () => {
-    const contest = contestSummaries.find(item => item.id === contestSelect.value);
+function navigateToContest(id) {
+    const contest = contestSummaries.find(item => String(item.id) === String(id));
     if (!contest) return;
     const url = contestUrl(location.href, contest.id);
     if (url !== location.href) history.pushState(null, '', url);
     selectContest(contest);
+}
+
+contestSelect.addEventListener('change', () => navigateToContest(contestSelect.value));
+contestNavigation.addEventListener('click', event => {
+    const button = event.target.closest('button[data-contest-id]');
+    if (button) navigateToContest(button.dataset.contestId);
+});
+
+function navigateContestKey(event) {
+    if (event.altKey || event.ctrlKey || event.metaKey || !['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
+    const options = [...contestSelect.options];
+    if (contestSelect.disabled || !options.length) return;
+    event.preventDefault();
+    const current = options.findIndex(option => option.value === contestSelect.value);
+    const index = event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1
+        : Math.max(0, Math.min(options.length - 1, current + (event.key === 'ArrowDown' ? 1 : -1)));
+    const id = options[index].value;
+    if (id !== contestSelect.value) navigateToContest(id);
+    if (contestNavigation.contains(event.target)) {
+        const button = [...contestNavigation.querySelectorAll('button')].find(item => item.dataset.contestId === id);
+        button?.focus({ preventScroll: true });
+        button?.scrollIntoView({ block: 'nearest' });
+    }
+}
+contestSelect.addEventListener('keydown', navigateContestKey);
+contestNavigation.addEventListener('keydown', navigateContestKey);
+window.matchMedia('(min-width: 1000px)').addEventListener('change', event => {
+    if (event.matches) contestNavigation.querySelector('[aria-current]')?.scrollIntoView({ block: 'nearest' });
+    else if (contestNavigation.contains(document.activeElement)) contestSelect.focus();
 });
 
 function selectLinkedContest() {
