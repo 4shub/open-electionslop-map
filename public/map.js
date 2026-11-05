@@ -79,7 +79,7 @@ try {
 
 
 function clampWidth(value) {
-    const minWidth = Math.min(90, initialViewBox.width / 4);
+    const minWidth = Math.min(9, initialViewBox.width / 40);
     const maxWidth = Math.max(1300, initialViewBox.width * 1.3);
     return Math.min(maxWidth, Math.max(minWidth, value));
 }
