@@ -12,7 +12,11 @@ function harness(aspect = 0.62) {
     svg.clientHeight = 500 * aspect;
     svg.getBoundingClientRect = () => ({ left: 0, top: 0, width: 500, height: 500 * aspect });
     let view = { x: 0, y: 0, width: 1000, height: 1000 * aspect };
-    const toMapPoint = (x, y) => ({ x: view.x + x / 500 * view.width, y: view.y + y / (500 * aspect) * view.height });
+    let coordinateReads = 0;
+    const toMapPoint = (x, y) => {
+        coordinateReads++;
+        return { x: view.x + x / 500 * view.width, y: view.y + y / (500 * aspect) * view.height };
+    };
     const gestures = attachMapGestures(svg, {
         getViewBox: () => view, toMapPoint, getAspectRatio: () => aspect,
         clampWidth: width => Math.max(1, Math.min(1300, width)),
@@ -30,9 +34,22 @@ function harness(aspect = 0.62) {
         event.pointerId = 1;
         svg.dispatchEvent(event);
     }
-    return { send, gestures, toMapPoint, loseChildCapture, get view() { return view; }, captured };
+    return { send, gestures, toMapPoint, loseChildCapture, get view() { return view; }, get coordinateReads() { return coordinateReads; }, captured };
 }
 const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-7, `${a} != ${b}`);
+
+test('dragging uses its initial coordinate frame without layout reads between view writes', () => {
+    const map = harness();
+    map.send('pointerdown');
+    const reads = map.coordinateReads;
+    map.send('pointermove', { clientX: 125, clientY: 110 });
+    near(map.view.x, -50);
+    near(map.view.y, -20);
+    map.send('pointermove', { clientX: 150, clientY: 130 });
+    near(map.view.x, -100);
+    near(map.view.y, -60);
+    assert.equal(map.coordinateReads, reads);
+});
 
 test('two fingers zoom in and out around their midpoint and continue panning without a jump', () => {
     const map = harness();

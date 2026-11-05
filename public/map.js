@@ -501,11 +501,12 @@ function drawMap(geojson) {
         boundaryLabels.set(id, label);
         path.append(title);
         path.addEventListener('pointerenter', event => {
-            if (event.pointerType === 'touch') return;
+            if (event.pointerType === 'touch' || gestures.isClickSuppressed()) return;
             hoveredPrecinct = id;
             updateMapStatus();
         });
         path.addEventListener('pointerleave', () => {
+            if (gestures.isClickSuppressed()) return;
             hoveredPrecinct = null;
             updateMapStatus();
         });
